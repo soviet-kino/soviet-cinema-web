@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout web
+        uses: actions/checkout@v4
+
+      # data — публичный репо в той же org, токен не нужен. Кладём в data-source,
+      # потом передаём путь сборщику через SBC_DATA_DIR.
+      - name: Checkout soviet-cinema-data (main)
+        uses: actions/checkout@v4
+        with:
+          repository: soviet-kino/soviet-cinema-data
+          ref: main
+          path: data-source
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Build SQLite from YAML
+        env:
+          SBC_DATA_DIR: ${{ github.workspace }}/data-source
+        run: npm run build:db
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Next build
+        env:
+          SBC_DATA_DIR: ${{ github.workspace }}/data-source
+        run: npm run build
