@@ -64,8 +64,7 @@ function main() {
       id UNINDEXED,
       title_ru,
       title_original,
-      title_en,
-      content=''
+      title_en
     );
   `);
 
