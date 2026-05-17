@@ -8,6 +8,7 @@ import {
   youtubeThumbnail,
   youtubeWatchUrl,
 } from "./media";
+import { ZoomableImage } from "./zoomable-image";
 
 interface PosterProps {
   filename?: string;
@@ -39,19 +40,26 @@ export function Poster({ filename, alt, width = 400, className }: PosterProps) {
   }
   return (
     <figure className={"space-y-1 " + (className ?? "")}>
-      <a
-        href={commonsFilePage(filename)}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="block border border-light/10 hover:border-light/40"
-      >
-        <img
-          src={commonsUrl(filename, width)}
-          alt={alt}
-          loading="lazy"
-          className="w-full h-auto block"
-        />
-      </a>
+      <ZoomableImage
+        src={commonsUrl(filename, width)}
+        fullSrc={commonsUrl(filename, 1600)}
+        alt={alt}
+        imgClassName="w-full h-auto block border border-light/10 hover:border-sepia/40 transition-colors"
+        caption={
+          <>
+            {alt}
+            {" · "}
+            <a
+              href={commonsFilePage(filename)}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="underline decoration-dotted underline-offset-2 hover:text-sepia"
+            >
+              на Wikimedia Commons
+            </a>
+          </>
+        }
+      />
       <figcaption className="text-[10px] text-light/50 leading-tight">
         Wikimedia Commons
       </figcaption>
@@ -80,14 +88,28 @@ export function Avatar({ filename, alt, size = 28 }: AvatarProps) {
     );
   }
   return (
-    <img
+    <ZoomableImage
       src={commonsUrl(filename, size * 2)}
+      fullSrc={commonsUrl(filename, 1200)}
       alt={alt}
       width={size}
       height={size}
-      loading="lazy"
-      className="inline-block shrink-0 rounded-full object-cover bg-light/5"
-      style={{ width: size, height: size }}
+      imgClassName="inline-block shrink-0 rounded-full object-cover bg-light/5"
+      triggerClassName="inline-block shrink-0 rounded-full overflow-hidden hover:ring-2 hover:ring-sepia/60 transition"
+      caption={
+        <>
+          {alt}
+          {" · "}
+          <a
+            href={commonsFilePage(filename)}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline decoration-dotted underline-offset-2 hover:text-sepia"
+          >
+            на Wikimedia Commons
+          </a>
+        </>
+      }
     />
   );
 }
