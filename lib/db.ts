@@ -1,8 +1,11 @@
-// Заглушка интерфейса к рантайм-БД (SQLite, генерируется при сборке).
-// Реальная реализация появится, когда соберём первый sqlite-файл через
-// scripts/build-db.mjs. До тех пор UI работает на пустых результатах.
+// Тонкая обёртка над SQLite.
 //
-// CLAUDE.md: «На старте — встроенный FTS5 в SQLite. При росте — Meilisearch».
+// БД генерируется при сборке скриптом scripts/build-db.mjs из YAML
+// в ../soviet-cinema-data. На рантайме читаем только.
+//
+// Все таблицы films/people/studios содержат колонку `data` с полным
+// JSON-представлением исходного YAML. Для большинства страниц этого
+// достаточно, индексные колонки нужны для списков и сортировок.
 
 import path from "node:path";
 import fs from "node:fs";
@@ -13,27 +16,13 @@ const DB_PATH = path.join(process.cwd(), "data", "soviet-cinema.sqlite");
 
 let _db: Database.Database | null = null;
 
-export function db(): Database.Database | null {
+export function db(): Database.Database {
   if (_db) return _db;
-  if (!fs.existsSync(DB_PATH)) return null;
+  if (!fs.existsSync(DB_PATH)) {
+    throw new Error(
+      `БД не собрана: ${DB_PATH}. Запустите \`npm run build:db\` (см. scripts/build-db.mjs).`,
+    );
+  }
   _db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
   return _db;
-}
-
-export interface FilmRow {
-  id: string;
-  title_ru: string;
-  title_original: string;
-  year: number;
-  country: string;
-}
-
-export function listFilms(limit = 50): FilmRow[] {
-  const conn = db();
-  if (!conn) return [];
-  return conn
-    .prepare(
-      "SELECT id, title_ru, title_original, year, country FROM films ORDER BY year DESC, title_ru LIMIT ?",
-    )
-    .all(limit) as FilmRow[];
 }
