@@ -75,6 +75,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
           <ChipLink
             key={c.code}
             active={country === c.code}
+            disabled={c.count === 0 && country !== c.code}
             href={hrefWith({ country: c.code, year: yearParam, studio })}
             label={
               <span>
@@ -161,11 +162,16 @@ function ChipLink({
   href,
   label,
   active,
+  disabled,
 }: {
   href: LinkHref;
   label: React.ReactNode;
   active: boolean;
+  disabled?: boolean;
 }) {
+  // Приглушённые чипы (count=0) всё равно кликаем — клик уведёт на
+  // пустую выборку и UI покажет «нет фильмов». Это правильно: чип-
+  // фильтр должен быть стабильным, не появляться/исчезать.
   return (
     <Link
       href={href}
@@ -173,7 +179,9 @@ function ChipLink({
         "px-2 py-0.5 rounded border text-sm transition-colors " +
         (active
           ? "border-sepia bg-sepia/20 text-light"
-          : "border-light/20 text-light/70 hover:border-light/50 hover:text-light")
+          : disabled
+            ? "border-light/10 text-light/30 hover:border-light/30 hover:text-light/60"
+            : "border-light/20 text-light/70 hover:border-light/50 hover:text-light")
       }
     >
       {label}
