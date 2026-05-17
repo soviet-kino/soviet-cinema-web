@@ -36,13 +36,48 @@ export interface FilmListItem {
   country: string[];
 }
 
-export function listFilms(opts?: { year?: number; limit?: number }): FilmListItem[] {
+export function listFilms(opts?: {
+  year?: number;
+  country?: string;
+  studio?: string;
+  topic?: string;
+  limit?: number;
+}): FilmListItem[] {
   const conn = db();
   const where: string[] = [];
   const params: (string | number)[] = [];
   if (opts?.year != null) {
     where.push("year = ?");
     params.push(opts.year);
+  }
+  if (opts?.country) {
+    // country хранится через запятую («SU», «SU,PL»). Простой LIKE
+    // подойдёт на 1k+ строк; нормализуем при росте до 10k+.
+    where.push(
+      "(country = ? OR country LIKE ? OR country LIKE ? OR country LIKE ?)",
+    );
+    const c = opts.country;
+    params.push(c, `${c},%`, `%,${c}`, `%,${c},%`);
+  }
+  // studio и topics лежат в JSON-поле data как массивы slug-ов.
+  // json_each раскрывает массив, точное совпадение по value.
+  if (opts?.studio) {
+    where.push(
+      `id IN (
+        SELECT films.id FROM films, json_each(json_extract(films.data, '$.studio')) je
+        WHERE je.value = ?
+      )`,
+    );
+    params.push(opts.studio);
+  }
+  if (opts?.topic) {
+    where.push(
+      `id IN (
+        SELECT films.id FROM films, json_each(json_extract(films.data, '$.topics')) je
+        WHERE je.value = ?
+      )`,
+    );
+    params.push(opts.topic);
   }
   const sql = `
     SELECT id, year, title_ru, title_original, country
@@ -68,12 +103,41 @@ export function countFilms(): number {
   return row.c;
 }
 
-export function availableYears(): number[] {
+export function availableYears(country?: string): number[] {
   const conn = db();
+  if (!country) {
+    const rows = conn
+      .prepare("SELECT DISTINCT year FROM films WHERE year IS NOT NULL ORDER BY year DESC")
+      .all() as { year: number }[];
+    return rows.map((r) => r.year);
+  }
   const rows = conn
-    .prepare("SELECT DISTINCT year FROM films WHERE year IS NOT NULL ORDER BY year DESC")
-    .all() as { year: number }[];
+    .prepare(
+      `SELECT DISTINCT year FROM films
+       WHERE year IS NOT NULL
+         AND (country = ? OR country LIKE ? OR country LIKE ? OR country LIKE ?)
+       ORDER BY year DESC`,
+    )
+    .all(country, `${country},%`, `%,${country}`, `%,${country},%`) as { year: number }[];
   return rows.map((r) => r.year);
+}
+
+/** Список стран с количеством фильмов: для чипов-фильтров на /films. */
+export function availableCountries(year?: number): { code: string; count: number }[] {
+  const conn = db();
+  const rows = (year != null
+    ? conn.prepare("SELECT country FROM films WHERE year = ?").all(year)
+    : conn.prepare("SELECT country FROM films").all()) as { country: string | null }[];
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.country) continue;
+    for (const c of r.country.split(",")) {
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([code, count]) => ({ code, count }))
+    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
 }
 
 export function getFilm(id: string): Film | null {
@@ -198,6 +262,21 @@ export function personsByIds(ids: string[]): Map<string, Person> {
   const map = new Map<string, Person>();
   for (const r of rows) map.set(r.id, JSON.parse(r.data) as Person);
   return map;
+}
+
+export function getStudio(id: string): Studio | null {
+  const conn = db();
+  const row = conn
+    .prepare("SELECT data FROM studios WHERE id = ?")
+    .get(id) as { data: string } | undefined;
+  if (!row) return null;
+  return JSON.parse(row.data) as Studio;
+}
+
+export function allStudioIds(): string[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id FROM studios").all() as { id: string }[];
+  return rows.map((r) => r.id);
 }
 
 export function studiosByIds(ids: string[]): Map<string, Studio> {
