@@ -2,10 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Webfonts через Google Fonts — минимальный набор: серифный display и
-   моноширинный для slug-ов. Без preconnect на сервер мы не контролируем
-   — это компромисс на этапе MVP. */
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap");
+/* Webfonts через Google Fonts. Old Standard TT — старопечатный seriff
+   в стилистике дореволюционной русской типографики и титров немого
+   кино. JetBrains Mono — для подписей-«титров» и slug-ов. */
+@import url("https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap");
 
 :root {
   color-scheme: dark;
