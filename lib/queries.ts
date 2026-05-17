@@ -91,6 +91,92 @@ export function allFilmIds(): string[] {
   return rows.map((r) => r.id);
 }
 
+export interface PersonListItem {
+  id: string;
+  name_ru: string;
+  roles: string[];
+  birth?: string;
+  death?: string;
+}
+
+export function listPeople(): PersonListItem[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id, data FROM people ORDER BY name_ru COLLATE NOCASE").all() as {
+    id: string;
+    data: string;
+  }[];
+  return rows.map((r) => {
+    const p = JSON.parse(r.data) as Person;
+    return {
+      id: p.id,
+      name_ru: p.name_ru,
+      roles: p.roles ?? [],
+      birth: p.birth,
+      death: p.death,
+    };
+  });
+}
+
+export function allPersonIds(): string[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id FROM people").all() as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Фильмография: фильмы, где person указан в director / screenwriter /
+ * cinematographer / composer / cast.
+ *
+ * На 1293 фильмах быстрее всего пройтись по JSON один раз, чем строить
+ * нормализованные join-таблицы. Если каталог вырастет — переедем на
+ * отдельную таблицу `film_credits(person_id, film_id, role)`.
+ */
+export interface FilmographyEntry {
+  film_id: string;
+  title_ru: string;
+  year: number;
+  role: "director" | "screenwriter" | "cinematographer" | "composer" | "actor";
+  character?: string;
+}
+
+export function filmographyOf(personId: string): FilmographyEntry[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT id, title_ru, year, data FROM films")
+    .all() as { id: string; title_ru: string; year: number; data: string }[];
+  const out: FilmographyEntry[] = [];
+  for (const r of rows) {
+    const f = JSON.parse(r.data) as Film;
+    if (f.director?.includes(personId))
+      out.push({ film_id: r.id, title_ru: r.title_ru, year: r.year, role: "director" });
+    if (f.screenwriter?.includes(personId))
+      out.push({ film_id: r.id, title_ru: r.title_ru, year: r.year, role: "screenwriter" });
+    if (f.cinematographer?.includes(personId))
+      out.push({
+        film_id: r.id,
+        title_ru: r.title_ru,
+        year: r.year,
+        role: "cinematographer",
+      });
+    if (f.composer?.includes(personId))
+      out.push({ film_id: r.id, title_ru: r.title_ru, year: r.year, role: "composer" });
+    if (f.cast) {
+      for (const c of f.cast) {
+        if (c.person === personId) {
+          out.push({
+            film_id: r.id,
+            title_ru: r.title_ru,
+            year: r.year,
+            role: "actor",
+            character: c.role,
+          });
+        }
+      }
+    }
+  }
+  return out.sort((a, b) => b.year - a.year || a.title_ru.localeCompare(b.title_ru, "ru"));
+}
+
 export function getPerson(id: string): Person | null {
   const conn = db();
   const row = conn

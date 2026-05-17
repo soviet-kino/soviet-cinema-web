@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
@@ -214,7 +215,11 @@ function StudioCredit({
 
 function PersonName({ id, person }: { id: string; person?: Person }) {
   if (!person) return <code className="text-ink/50">{id}</code>;
-  return <span>{person.name_ru}</span>;
+  return (
+    <Link href={`/people/${id}`} className="hover:underline">
+      {person.name_ru}
+    </Link>
+  );
 }
 
 function Tags({ film }: { film: Film }) {
