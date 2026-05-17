@@ -4,7 +4,7 @@
 import "server-only";
 
 import { db } from "./db";
-import type { Film, Person, Studio } from "./types";
+import type { Film, Person, Studio, Topic } from "./types";
 
 interface FilmRow {
   id: string;
@@ -208,6 +208,84 @@ export function studiosByIds(ids: string[]): Map<string, Studio> {
   const map = new Map<string, Studio>();
   for (const r of rows) map.set(r.id, JSON.parse(r.data) as Studio);
   return map;
+}
+
+// ---- topics --------------------------------------------------------------
+
+export interface TopicListItem {
+  id: string;
+  name_ru: string;
+  description_ru: string;
+  film_count: number;
+}
+
+export function listTopics(): TopicListItem[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT id, data FROM topics ORDER BY name_ru COLLATE NOCASE")
+    .all() as { id: string; data: string }[];
+  const films = conn.prepare("SELECT data FROM films").all() as { data: string }[];
+  // Считаем сколько фильмов привязано к каждому топику. На 1k+ фильмах
+  // это меньше миллисекунды; разворачивать в отдельную таблицу не нужно.
+  const counts = new Map<string, number>();
+  for (const r of films) {
+    const f = JSON.parse(r.data) as Film;
+    for (const t of f.topics ?? []) {
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+  }
+  return rows.map((r) => {
+    const t = JSON.parse(r.data) as Topic;
+    return {
+      id: t.id,
+      name_ru: t.name_ru,
+      description_ru: t.description_ru,
+      film_count: counts.get(t.id) ?? 0,
+    };
+  });
+}
+
+export function getTopic(id: string): Topic | null {
+  const conn = db();
+  const row = conn
+    .prepare("SELECT data FROM topics WHERE id = ?")
+    .get(id) as { data: string } | undefined;
+  if (!row) return null;
+  return JSON.parse(row.data) as Topic;
+}
+
+export function allTopicIds(): string[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id FROM topics").all() as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
+export function filmsByTopic(topicId: string): FilmListItem[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT id, year, title_ru, title_original, country, data FROM films")
+    .all() as {
+    id: string;
+    year: number;
+    title_ru: string | null;
+    title_original: string | null;
+    country: string | null;
+    data: string;
+  }[];
+  const out: FilmListItem[] = [];
+  for (const r of rows) {
+    const f = JSON.parse(r.data) as Film;
+    if (f.topics?.includes(topicId)) {
+      out.push({
+        id: r.id,
+        title_ru: r.title_ru ?? r.id,
+        title_original: r.title_original ?? r.title_ru ?? r.id,
+        year: r.year,
+        country: r.country ? r.country.split(",") : [],
+      });
+    }
+  }
+  return out.sort((a, b) => b.year - a.year || a.title_ru.localeCompare(b.title_ru, "ru"));
 }
 
 // ---- vocabulary (страны, республики, жанры, языки и т.д.) -----------------
