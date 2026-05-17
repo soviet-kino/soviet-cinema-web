@@ -4,6 +4,7 @@ import type { ComponentProps } from "react";
 import { Abbr } from "@/lib/abbr";
 import {
   availableCountries,
+  availableGenres,
   availableYears,
   countFilms,
   listFilms,
@@ -44,6 +45,11 @@ export default async function FilmsPage({ searchParams }: PageProps) {
 
   const films = listFilms({ year, country, studio, genre });
   const countriesForYear = availableCountries(year);
+  // Жанры показываем для текущего среза (year + country), без учёта
+  // самого жанра — иначе чипы будут зависеть от собственного выбора.
+  const genresForCurrent = availableGenres({ year, country }).filter(
+    (g) => g.count > 0 || g.code === genre,
+  );
 
   return (
     <section className="space-y-6">
@@ -110,6 +116,30 @@ export default async function FilmsPage({ searchParams }: PageProps) {
           />
         ))}
       </FilterRow>
+
+      {/* ЖАНРЫ */}
+      {genresForCurrent.length > 0 && (
+        <FilterRow label="жанр">
+          <ChipLink
+            active={!genre}
+            href={hrefWith({ country, year: yearParam, studio, genre: undefined })}
+            label="Все"
+          />
+          {genresForCurrent.map((g) => (
+            <ChipLink
+              key={g.code}
+              active={genre === g.code}
+              href={hrefWith({ country, year: yearParam, studio, genre: g.code })}
+              label={
+                <span>
+                  <Abbr kind="genre" code={g.code} display="name" />{" "}
+                  <span className="text-light/40">{g.count}</span>
+                </span>
+              }
+            />
+          ))}
+        </FilterRow>
+      )}
 
       <ul className="divide-y divide-light/10">
         {films.map((f) => (

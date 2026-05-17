@@ -148,6 +148,46 @@ export function availableYears(country?: string): number[] {
 }
 
 /**
+ * Жанры с количеством фильмов в текущей выборке. Аналогично странам:
+ * показываем все из словаря, count — для year/country фильтра.
+ */
+export function availableGenres(opts?: {
+  year?: number;
+  country?: string;
+}): { code: string; count: number }[] {
+  const conn = db();
+  const allCodes = (
+    conn
+      .prepare("SELECT code FROM vocabulary WHERE kind = 'genre' ORDER BY rowid")
+      .all() as { code: string }[]
+  ).map((r) => r.code);
+
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+  if (opts?.year != null) {
+    where.push("films.year = ?");
+    params.push(opts.year);
+  }
+  if (opts?.country) {
+    where.push(
+      "(films.country = ? OR films.country LIKE ? OR films.country LIKE ? OR films.country LIKE ?)",
+    );
+    const c = opts.country;
+    params.push(c, `${c},%`, `%,${c}`, `%,${c},%`);
+  }
+  const rows = conn
+    .prepare(
+      `SELECT je.value AS code, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.genre')) je
+         ${where.length ? "WHERE " + where.join(" AND ") : ""}
+        GROUP BY je.value`,
+    )
+    .all(...params) as { code: string; c: number }[];
+  const countsMap = new Map(rows.map((r) => [r.code, r.c]));
+  return allCodes.map((code) => ({ code, count: countsMap.get(code) ?? 0 }));
+}
+
+/**
  * Список всех стран из словаря с количеством фильмов в текущей выборке.
  * Страны без фильмов (например, МНР) тоже возвращаются — с count = 0;
  * UI показывает их приглушённо, чтобы фильтр был полным и стабильным.
