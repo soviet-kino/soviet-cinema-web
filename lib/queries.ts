@@ -298,6 +298,40 @@ export function personsByIds(ids: string[]): Map<string, Person> {
   return map;
 }
 
+export interface StudioListItem {
+  id: string;
+  name_ru: string;
+  country: string;
+  founded?: number;
+  film_count: number;
+}
+
+export function listStudios(): StudioListItem[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT id, data FROM studios ORDER BY name_ru COLLATE NOCASE")
+    .all() as { id: string; data: string }[];
+  // Подсчёт фильмов на студии — через JSON1.
+  const counts = conn
+    .prepare(
+      `SELECT je.value AS studio, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.studio')) je
+        GROUP BY je.value`,
+    )
+    .all() as { studio: string; c: number }[];
+  const countsMap = new Map(counts.map((r) => [r.studio, r.c]));
+  return rows.map((r) => {
+    const s = JSON.parse(r.data) as Studio;
+    return {
+      id: s.id,
+      name_ru: s.name_ru,
+      country: s.country,
+      founded: s.founded,
+      film_count: countsMap.get(s.id) ?? 0,
+    };
+  });
+}
+
 export function getStudio(id: string): Studio | null {
   const conn = db();
   const row = conn
