@@ -5,8 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['"PT Serif"', "Georgia", "Times New Roman", "serif"],
-        display: ['"Playfair Display"', '"PT Serif"', "Georgia", "serif"],
+        // «Old Standard TT» — старопечатный seriff, восстанавливающий
+        // дореволюционную русскую типографику и стиль ранних титров
+        // немого кино. С полной кириллицей.
+        serif: ['"Old Standard TT"', "Georgia", "Times New Roman", "serif"],
+        display: ['"Old Standard TT"', "Georgia", "serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       colors: {
