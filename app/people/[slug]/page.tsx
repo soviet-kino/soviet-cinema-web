@@ -3,7 +3,12 @@ import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
 import { Avatar } from "@/lib/media-components";
-import { allPersonIds, filmographyOf, getPerson } from "@/lib/queries";
+import {
+  allPersonIds,
+  filmographyOf,
+  filmsAdaptedFromAuthor,
+  getPerson,
+} from "@/lib/queries";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -33,6 +38,7 @@ export default async function PersonPage({ params }: PageProps) {
   const person = getPerson(slug);
   if (!person) notFound();
   const films = filmographyOf(slug);
+  const adaptations = filmsAdaptedFromAuthor(slug);
 
   return (
     <article className="space-y-8">
@@ -94,6 +100,36 @@ export default async function PersonPage({ params }: PageProps) {
         </section>
       ) : (
         <p className="text-light/60">В базе нет фильмов с этим участником.</p>
+      )}
+
+      {adaptations.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
+            Экранизации произведений ({adaptations.length})
+          </h2>
+          <ul className="space-y-1">
+            {adaptations.map((a) => (
+              <li
+                key={`${a.film_id}-${a.source_title}`}
+                className="flex items-baseline justify-between gap-4"
+              >
+                <Link
+                  href={`/films/${a.film_id}`}
+                  className="hover:underline"
+                >
+                  <span className="text-light/60 mr-2">{a.year}</span>
+                  <span className="font-medium">{a.title_ru}</span>
+                </Link>
+                <span className="text-sm text-light/60 shrink-0">
+                  по «{a.source_title}»
+                  {a.source_year && (
+                    <span className="text-light/50"> ({a.source_year})</span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {person.external_ids?.wikidata && (

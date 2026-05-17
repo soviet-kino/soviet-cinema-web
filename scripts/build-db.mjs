@@ -38,6 +38,7 @@ function main() {
   const people = readYamlDir(path.join(DATA_ROOT, "people"));
   const studios = readYamlDir(path.join(DATA_ROOT, "studios"));
   const topics = readYamlDir(path.join(DATA_ROOT, "topics"));
+  const references = readYamlDir(path.join(DATA_ROOT, "references"));
 
   const db = new Database(OUT);
   db.pragma("journal_mode = WAL");
@@ -79,6 +80,12 @@ function main() {
       name_ru TEXT,
       data JSON
     );
+    CREATE TABLE refs (
+      id TEXT PRIMARY KEY,
+      source_film TEXT,
+      kind TEXT,
+      data JSON
+    );
   `);
 
   const insFilm = db.prepare(
@@ -98,6 +105,9 @@ function main() {
   );
   const insTopic = db.prepare(
     "INSERT INTO topics (id, name_ru, data) VALUES (?, ?, ?)",
+  );
+  const insRef = db.prepare(
+    "INSERT INTO refs (id, source_film, kind, data) VALUES (?, ?, ?, ?)",
   );
 
   // Перечень соответствует vocabularies/ в soviet-cinema-data.
@@ -144,6 +154,14 @@ function main() {
     for (const t of topics) {
       insTopic.run(t.id, t.name_ru ?? null, JSON.stringify(t));
     }
+    for (const r of references) {
+      insRef.run(
+        r.id,
+        r.source_film ?? null,
+        r.kind ?? null,
+        JSON.stringify(r),
+      );
+    }
     for (const [kind, file] of Object.entries(vocabFiles)) {
       const vp = path.join(DATA_ROOT, "vocabularies", file);
       if (!fs.existsSync(vp)) continue;
@@ -158,7 +176,7 @@ function main() {
 
   const vocabCount = db.prepare("SELECT COUNT(*) AS c FROM vocabulary").get().c;
   console.log(
-    `[build-db] films=${films.length} people=${people.length} studios=${studios.length} topics=${topics.length} vocab=${vocabCount} → ${path.relative(ROOT, OUT)}`,
+    `[build-db] films=${films.length} people=${people.length} studios=${studios.length} topics=${topics.length} refs=${references.length} vocab=${vocabCount} → ${path.relative(ROOT, OUT)}`,
   );
 }
 
