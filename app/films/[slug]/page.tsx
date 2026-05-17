@@ -6,7 +6,6 @@ import {
   getFilm,
   personsByIds,
   studiosByIds,
-  vocabName,
 } from "@/lib/queries";
 import type { Film, Person, Studio } from "@/lib/types";
 
@@ -216,13 +215,15 @@ function Tags({ film }: { film: Film }) {
             key={`${t.kind}:${t.code}`}
             className="px-2 py-0.5 rounded border border-ink/20 text-ink/70"
           >
-            {t.kind === "color"
-              ? t.code === "bw"
+            {t.kind === "color" ? (
+              t.code === "bw"
                 ? "ч/б"
                 : t.code === "color_and_bw"
                   ? "цвет + ч/б"
                   : "цвет"
-              : vocabName(t.kind, t.code)}
+            ) : (
+              <Abbr kind={t.kind} code={t.code} display="name" />
+            )}
           </li>
         ))}
       </ul>
