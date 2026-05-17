@@ -1,27 +1,63 @@
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
 import { Abbr } from "@/lib/abbr";
 import { Avatar } from "@/lib/media-components";
-import { listPeople } from "@/lib/queries";
+import { availableRoles, listPeople } from "@/lib/queries";
 
-export const dynamic = "force-static";
+type LinkHref = ComponentProps<typeof Link>["href"];
 
-export default function PeoplePage() {
-  const people = listPeople();
+interface PageProps {
+  searchParams: Promise<{ role?: string }>;
+}
+
+export default async function PeoplePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const role = params.role?.trim() || undefined;
+  const people = listPeople({ role });
+  const roles = availableRoles().filter((r) => r.count > 0 || r.code === role);
+
   return (
     <section className="space-y-6">
       <header className="space-y-2">
         <p className="titre">галерея</p>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h1 className="font-display text-3xl text-light">Люди</h1>
-          <p className="titre">{people.length} в базе</p>
+          <p className="titre">
+            {people.length}
+            {role && (
+              <>
+                {" · "}
+                <Abbr kind="role" code={role} display="name" />
+              </>
+            )}
+          </p>
         </div>
       </header>
 
-      <p className="text-light/70 max-w-2xl">
-        Режиссёры, сценаристы, операторы, композиторы и актёры. Часть
-        записей — заглушки, созданные при импорте из Wikidata; портреты и
-        биографии подгружаются по мере обогащения. Где фото нет — стоит
+      <div className="flex items-baseline gap-3 flex-wrap">
+        <p className="titre w-14 shrink-0">роль</p>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip active={!role} href={{ pathname: "/people" }} label="Все" />
+          {roles.map((r) => (
+            <Chip
+              key={r.code}
+              active={role === r.code}
+              href={{ pathname: "/people", query: { role: r.code } }}
+              label={
+                <span>
+                  <Abbr kind="role" code={r.code} display="name" />{" "}
+                  <span className="text-light/40">{r.count}</span>
+                </span>
+              }
+            />
+          ))}
+        </div>
+      </div>
+
+      <p className="text-light/70 text-sm max-w-2xl">
+        Часть записей — заглушки, созданные при импорте из Wikidata; портреты
+        и биографии подгружаются по мере обогащения. Где фото нет — стоит
         приглушённый круг.
       </p>
 
@@ -61,6 +97,30 @@ export default function PeoplePage() {
         ))}
       </ul>
     </section>
+  );
+}
+
+function Chip({
+  href,
+  label,
+  active,
+}: {
+  href: LinkHref;
+  label: React.ReactNode;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={
+        "px-2 py-0.5 rounded border text-sm transition-colors " +
+        (active
+          ? "border-sepia bg-sepia/20 text-light"
+          : "border-light/20 text-light/70 hover:border-light/50 hover:text-light")
+      }
+    >
+      {label}
+    </Link>
   );
 }
 
