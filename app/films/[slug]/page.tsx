@@ -1,11 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Abbr } from "@/lib/abbr";
 import {
   allFilmIds,
   getFilm,
   personsByIds,
   studiosByIds,
+  vocabName,
 } from "@/lib/queries";
 import type { Film, Person, Studio } from "@/lib/types";
 
@@ -57,8 +58,23 @@ export default async function FilmPage({ params }: PageProps) {
         )}
         <p className="text-ink/70">
           {film.year}
-          {film.country.length > 0 && <span> · {film.country.join(", ")}</span>}
-          {film.republic && <span> · {film.republic}</span>}
+          {film.country.length > 0 && (
+            <span>
+              {" · "}
+              {film.country.map((c, i) => (
+                <span key={c}>
+                  {i > 0 && ", "}
+                  <Abbr kind="country" code={c} />
+                </span>
+              ))}
+            </span>
+          )}
+          {film.republic && (
+            <span>
+              {" · "}
+              <Abbr kind="republic" code={film.republic} />
+            </span>
+          )}
           {film.runtime_min && <span> · {film.runtime_min} мин</span>}
         </p>
       </header>
@@ -183,22 +199,30 @@ function PersonName({ id, person }: { id: string; person?: Person }) {
 }
 
 function Tags({ film }: { film: Film }) {
-  const tags: string[] = [];
-  if (film.genre) tags.push(...film.genre);
-  if (film.language && film.language.length > 0)
-    tags.push(...film.language.map((l) => `язык: ${l}`));
-  if (film.color) tags.push(film.color === "bw" ? "ч/б" : film.color);
-  if (film.censorship_status) tags.push(film.censorship_status);
+  // Каждый тег — с подписанным kind, чтобы пробросить расшифровку из словаря.
+  const tags: Array<{ kind: "genre" | "language" | "censorship_status" | "color"; code: string }> = [];
+  if (film.genre) for (const g of film.genre) tags.push({ kind: "genre", code: g });
+  if (film.language)
+    for (const l of film.language) tags.push({ kind: "language", code: l });
+  if (film.color) tags.push({ kind: "color", code: film.color });
+  if (film.censorship_status)
+    tags.push({ kind: "censorship_status", code: film.censorship_status });
   if (tags.length === 0) return null;
   return (
     <Section title="Метки">
       <ul className="flex flex-wrap gap-2 text-sm">
         {tags.map((t) => (
           <li
-            key={t}
+            key={`${t.kind}:${t.code}`}
             className="px-2 py-0.5 rounded border border-ink/20 text-ink/70"
           >
-            {t}
+            {t.kind === "color"
+              ? t.code === "bw"
+                ? "ч/б"
+                : t.code === "color_and_bw"
+                  ? "цвет + ч/б"
+                  : "цвет"
+              : vocabName(t.kind, t.code)}
           </li>
         ))}
       </ul>

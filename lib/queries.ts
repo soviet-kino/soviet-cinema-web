@@ -123,3 +123,39 @@ export function studiosByIds(ids: string[]): Map<string, Studio> {
   for (const r of rows) map.set(r.id, JSON.parse(r.data) as Studio);
   return map;
 }
+
+// ---- vocabulary (страны, республики, жанры, языки и т.д.) -----------------
+
+export type VocabKind =
+  | "country"
+  | "republic"
+  | "genre"
+  | "role"
+  | "motif_category"
+  | "reference_kind"
+  | "censorship_status"
+  | "language";
+
+let _vocabCache: Map<string, Map<string, string>> | null = null;
+
+function loadVocabCache(): Map<string, Map<string, string>> {
+  if (_vocabCache) return _vocabCache;
+  const cache = new Map<string, Map<string, string>>();
+  const rows = db()
+    .prepare("SELECT kind, code, name_ru FROM vocabulary")
+    .all() as { kind: string; code: string; name_ru: string }[];
+  for (const r of rows) {
+    let m = cache.get(r.kind);
+    if (!m) {
+      m = new Map();
+      cache.set(r.kind, m);
+    }
+    m.set(r.code, r.name_ru);
+  }
+  _vocabCache = cache;
+  return cache;
+}
+
+export function vocabName(kind: VocabKind, code: string): string {
+  return loadVocabCache().get(kind)?.get(code) ?? code;
+}
