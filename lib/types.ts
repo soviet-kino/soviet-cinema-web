@@ -12,6 +12,8 @@ export interface ExternalIds {
   imdb?: string;
   tmdb?: number | string;
   kinopoisk?: number | string;
+  /** YouTube video id (Wikidata P1651). */
+  youtube?: string;
 }
 
 export interface Film {
@@ -36,6 +38,8 @@ export interface Film {
   release_date?: string;
   production_status?: string;
   censorship_status?: string;
+  /** Имя файла на Wikimedia Commons (Wikidata P18). */
+  poster_commons?: string;
   external_ids?: ExternalIds;
   sources?: string[];
 }
@@ -49,6 +53,7 @@ export interface Person {
   death?: string;
   nationality?: string[];
   roles?: string[];
+  image_commons?: string;
   external_ids?: ExternalIds;
 }
 
@@ -58,5 +63,6 @@ export interface Studio {
   name_original?: string;
   country: string;
   founded?: number;
+  image_commons?: string;
   external_ids?: ExternalIds;
 }

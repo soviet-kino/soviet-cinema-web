@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
   allFilmIds,
   getFilm,
@@ -47,36 +48,48 @@ export default async function FilmPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">{film.title_ru}</h1>
-        {film.title_original && film.title_original !== film.title_ru && (
-          <p className="text-lg text-ink/70 italic">«{film.title_original}»</p>
-        )}
-        {film.title_en && film.title_en !== film.title_ru && (
-          <p className="text-sm text-ink/60">{film.title_en}</p>
-        )}
-        <p className="text-ink/70">
-          {film.year}
-          {film.country.length > 0 && (
-            <span>
-              {" · "}
-              {film.country.map((c, i) => (
-                <span key={c}>
-                  {i > 0 && ", "}
-                  <Abbr kind="country" code={c} />
-                </span>
-              ))}
-            </span>
+      <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6 items-start">
+        <aside className="sm:row-span-2">
+          <Poster filename={film.poster_commons} alt={`Постер фильма «${film.title_ru}»`} />
+        </aside>
+        <header className="space-y-1">
+          <h1 className="text-3xl font-semibold">{film.title_ru}</h1>
+          {film.title_original && film.title_original !== film.title_ru && (
+            <p className="text-lg text-ink/70 italic">«{film.title_original}»</p>
           )}
-          {film.republic && (
-            <span>
-              {" · "}
-              <Abbr kind="republic" code={film.republic} />
-            </span>
+          {film.title_en && film.title_en !== film.title_ru && (
+            <p className="text-sm text-ink/60">{film.title_en}</p>
           )}
-          {film.runtime_min && <span> · {film.runtime_min} мин</span>}
-        </p>
-      </header>
+          <p className="text-ink/70">
+            {film.year}
+            {film.country.length > 0 && (
+              <span>
+                {" · "}
+                {film.country.map((c, i) => (
+                  <span key={c}>
+                    {i > 0 && ", "}
+                    <Abbr kind="country" code={c} />
+                  </span>
+                ))}
+              </span>
+            )}
+            {film.republic && (
+              <span>
+                {" · "}
+                <Abbr kind="republic" code={film.republic} />
+              </span>
+            )}
+            {film.runtime_min && <span> · {film.runtime_min} мин</span>}
+          </p>
+        </header>
+        <div>
+          <WatchBlock
+            youtubeId={film.external_ids?.youtube}
+            titleRu={film.title_ru}
+            year={film.year}
+          />
+        </div>
+      </div>
 
       <Section title="Производство">
         <Credit label="Режиссёр" ids={film.director} people={peopleMap} />
@@ -88,13 +101,20 @@ export default async function FilmPage({ params }: PageProps) {
 
       {film.cast && film.cast.length > 0 && (
         <Section title="В ролях">
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {film.cast.map((c, i) => {
               const p = peopleMap.get(c.person);
               return (
-                <li key={i}>
-                  <PersonName id={c.person} person={p} />
-                  {c.role && <span className="text-ink/60"> — {c.role}</span>}
+                <li key={i} className="flex items-center gap-3">
+                  <Avatar
+                    filename={p?.image_commons}
+                    alt={p ? `Портрет: ${p.name_ru}` : ""}
+                    size={32}
+                  />
+                  <span>
+                    <PersonName id={c.person} person={p} />
+                    {c.role && <span className="text-ink/60"> — {c.role}</span>}
+                  </span>
                 </li>
               );
             })}
@@ -252,6 +272,12 @@ function ExternalIdsView({ film }: { film: Film }) {
       label: "TMDB",
       value: String(ids.tmdb),
       href: `https://www.themoviedb.org/movie/${ids.tmdb}`,
+    });
+  if (ids.youtube)
+    items.push({
+      label: "YouTube",
+      value: ids.youtube,
+      href: `https://www.youtube.com/watch?v=${ids.youtube}`,
     });
   if (items.length === 0) return <p className="text-ink/50">—</p>;
   return (
