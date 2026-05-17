@@ -269,22 +269,42 @@ function Tags({ film }: { film: Film }) {
   return (
     <Section title="Метки">
       <ul className="flex flex-wrap gap-2 text-sm">
-        {tags.map((t) => (
-          <li
-            key={`${t.kind}:${t.code}`}
-            className="px-2 py-0.5 rounded border border-light/20 text-light/70"
-          >
-            {t.kind === "color" ? (
-              t.code === "bw"
-                ? "ч/б"
-                : t.code === "color_and_bw"
-                  ? "цвет + ч/б"
-                  : "цвет"
+        {tags.map((t) => {
+          // Жанр — кликабельный: ведёт в /films?genre=...
+          // Остальные пока без своей страницы.
+          const body =
+            t.kind === "color" ? (
+              t.code === "bw" ? (
+                "ч/б"
+              ) : t.code === "color_and_bw" ? (
+                "цвет + ч/б"
+              ) : (
+                "цвет"
+              )
             ) : (
               <Abbr kind={t.kind} code={t.code} display="name" />
-            )}
-          </li>
-        ))}
+            );
+          if (t.kind === "genre") {
+            return (
+              <li key={`${t.kind}:${t.code}`}>
+                <Link
+                  href={{ pathname: "/films", query: { genre: t.code } }}
+                  className="block px-2 py-0.5 rounded border border-light/20 text-light/70 hover:border-sepia hover:text-sepia transition-colors"
+                >
+                  {body}
+                </Link>
+              </li>
+            );
+          }
+          return (
+            <li
+              key={`${t.kind}:${t.code}`}
+              className="px-2 py-0.5 rounded border border-light/20 text-light/70"
+            >
+              {body}
+            </li>
+          );
+        })}
       </ul>
     </Section>
   );
