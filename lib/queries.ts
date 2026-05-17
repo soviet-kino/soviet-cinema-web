@@ -238,12 +238,37 @@ export interface PersonListItem {
   image_commons?: string;
 }
 
-export function listPeople(): PersonListItem[] {
+export function availableRoles(): { code: string; count: number }[] {
   const conn = db();
-  const rows = conn.prepare("SELECT id, data FROM people ORDER BY name_ru COLLATE NOCASE").all() as {
-    id: string;
-    data: string;
-  }[];
+  const allCodes = (
+    conn
+      .prepare("SELECT code FROM vocabulary WHERE kind = 'role' ORDER BY rowid")
+      .all() as { code: string }[]
+  ).map((r) => r.code);
+  const rows = conn
+    .prepare(
+      `SELECT je.value AS code, COUNT(*) AS c
+         FROM people, json_each(json_extract(people.data, '$.roles')) je
+        GROUP BY je.value`,
+    )
+    .all() as { code: string; c: number }[];
+  const counts = new Map(rows.map((r) => [r.code, r.c]));
+  return allCodes.map((code) => ({ code, count: counts.get(code) ?? 0 }));
+}
+
+export function listPeople(opts?: { role?: string }): PersonListItem[] {
+  const conn = db();
+  const sql = opts?.role
+    ? `SELECT p.id, p.data FROM people p
+       WHERE EXISTS (
+         SELECT 1 FROM json_each(json_extract(p.data, '$.roles')) je
+         WHERE je.value = ?
+       )
+       ORDER BY p.name_ru COLLATE NOCASE`
+    : `SELECT id, data FROM people ORDER BY name_ru COLLATE NOCASE`;
+  const rows = (opts?.role
+    ? conn.prepare(sql).all(opts.role)
+    : conn.prepare(sql).all()) as { id: string; data: string }[];
   return rows.map((r) => {
     const p = JSON.parse(r.data) as Person;
     return {
