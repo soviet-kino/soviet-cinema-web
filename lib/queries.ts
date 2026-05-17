@@ -462,6 +462,57 @@ export function allTopicIds(): string[] {
 }
 
 /**
+ * Какие темы (явные и динамические) включают этот фильм.
+ *
+ * Используется в шапке /films/[slug]: показать все темы, к которым
+ * фильм относится — и кураторские, и периодные/авторские.
+ */
+export function topicsContainingFilm(filmId: string): Topic[] {
+  const film = getFilm(filmId);
+  if (!film) return [];
+  const conn = db();
+  const rows = conn.prepare("SELECT data FROM topics").all() as { data: string }[];
+  const topics = rows.map((r) => JSON.parse(r.data) as Topic);
+  const out: Topic[] = [];
+  for (const t of topics) {
+    if (film.topics?.includes(t.id)) {
+      out.push(t);
+      continue;
+    }
+    const f = t.filter;
+    if (!f) continue;
+    const c1 = f.year_from == null || (film.year != null && film.year >= f.year_from);
+    const c2 = f.year_to == null || (film.year != null && film.year <= f.year_to);
+    const c3 = !f.director || film.director?.includes(f.director);
+    const c4 = !f.screenwriter || film.screenwriter?.includes(f.screenwriter);
+    const c5 = !f.country || film.country?.includes(f.country);
+    let c6 = true;
+    if (f.book_author) {
+      c6 = false;
+      for (const r of allReferences()) {
+        if (r.source_film !== film.id) continue;
+        if (r.target.type !== "book") continue;
+        if (r.target.authors?.includes(f.book_author)) {
+          c6 = true;
+          break;
+        }
+      }
+    }
+    const anyFilterSet =
+      f.year_from != null ||
+      f.year_to != null ||
+      f.director ||
+      f.screenwriter ||
+      f.country ||
+      f.book_author;
+    if (anyFilterSet && c1 && c2 && c3 && c4 && c5 && c6) {
+      out.push(t);
+    }
+  }
+  return out.sort((a, b) => a.name_ru.localeCompare(b.name_ru, "ru"));
+}
+
+/**
  * Подборка фильмов темы.
  *
  * Объединяет:

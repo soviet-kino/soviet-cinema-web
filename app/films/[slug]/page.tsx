@@ -6,9 +6,11 @@ import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
   allFilmIds,
   getFilm,
+  listFilms,
   literarySourceOf,
   personsByIds,
   studiosByIds,
+  topicsContainingFilm,
 } from "@/lib/queries";
 import type { Film, Person, Studio } from "@/lib/types";
 
@@ -50,6 +52,15 @@ export default async function FilmPage({ params }: PageProps) {
   const litSource = literarySourceOf(slug);
   const peopleMap = personsByIds([...allPeopleIds, ...(litSource?.authors ?? [])]);
   const studioMap = studiosByIds(film.studio ?? []);
+  const filmTopics = topicsContainingFilm(slug);
+  // Другие фильмы первого режиссёра — до 10, исключая текущий, сортировка
+  // от свежих к ранним. Если у фильма нет режиссёра — пусто.
+  const directorSlug = film.director?.[0];
+  const relatedByDirector = directorSlug
+    ? listFilms({ director: directorSlug, limit: 11 })
+        .filter((f) => f.id !== slug)
+        .slice(0, 10)
+    : [];
 
   return (
     <article className="space-y-8">
@@ -86,6 +97,20 @@ export default async function FilmPage({ params }: PageProps) {
             )}
             {film.runtime_min && <span> · {film.runtime_min} мин</span>}
           </p>
+          {filmTopics.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5 pt-2">
+              {filmTopics.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    href={`/topics/${t.id}`}
+                    className="px-2 py-0.5 rounded border border-sepia/40 text-sepia text-xs hover:bg-sepia/10 transition-colors"
+                  >
+                    {t.name_ru}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </header>
         <div>
           <WatchBlock
@@ -174,6 +199,31 @@ export default async function FilmPage({ params }: PageProps) {
               </li>
             ))}
           </ul>
+        </Section>
+      )}
+
+      {relatedByDirector.length > 0 && directorSlug && (
+        <Section
+          title={`Другие фильмы режиссёра — ${peopleMap.get(directorSlug)?.name_ru ?? directorSlug}`}
+        >
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+            {relatedByDirector.map((f) => (
+              <li key={f.id}>
+                <Link href={`/films/${f.id}`} className="hover:underline">
+                  <span className="text-light/60 mr-2">{f.year}</span>
+                  <span className="font-medium">{f.title_ru}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2">
+            <Link
+              href={`/people/${directorSlug}`}
+              className="titre hover:text-sepia"
+            >
+              Все фильмы режиссёра →
+            </Link>
+          </p>
         </Section>
       )}
 
