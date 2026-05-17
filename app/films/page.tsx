@@ -19,7 +19,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
     <section className="space-y-6">
       <header className="flex items-baseline justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-semibold">Фильмы</h1>
-        <p className="text-sm text-ink/60">
+        <p className="text-sm text-light/60">
           {films.length} из {listFilms().length}
         </p>
       </header>
@@ -33,16 +33,16 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         </nav>
       )}
 
-      <ul className="divide-y divide-ink/10">
+      <ul className="divide-y divide-light/10">
         {films.map((f) => (
           <li key={f.id} className="py-3 flex items-baseline justify-between gap-4">
             <Link href={`/films/${f.id}`} className="hover:underline">
               <span className="font-medium">{f.title_ru}</span>
               {f.title_original && f.title_original !== f.title_ru && (
-                <span className="text-ink/60 ml-2">«{f.title_original}»</span>
+                <span className="text-light/60 ml-2">«{f.title_original}»</span>
               )}
             </Link>
-            <span className="text-sm text-ink/60 shrink-0">
+            <span className="text-sm text-light/60 shrink-0">
               {f.year}
               {f.country.length > 0 && (
                 <span className="ml-2">
@@ -60,7 +60,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
       </ul>
 
       {films.length === 0 && (
-        <p className="text-ink/60">По выбранному фильтру фильмов нет.</p>
+        <p className="text-light/60">По выбранному фильтру фильмов нет.</p>
       )}
     </section>
   );
@@ -82,8 +82,8 @@ function YearLink({
       className={
         "px-2 py-1 rounded border " +
         (active
-          ? "border-ink bg-ink text-paper"
-          : "border-ink/20 hover:border-ink/50")
+          ? "border-light bg-velvet text-screen"
+          : "border-light/20 hover:border-light/50")
       }
     >
       {label}

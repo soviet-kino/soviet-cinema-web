@@ -2,16 +2,122 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Webfonts через Google Fonts — минимальный набор: серифный display и
+   моноширинный для slug-ов. Без preconnect на сервер мы не контролируем
+   — это компромисс на этапе MVP. */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap");
+
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
-html, body {
-  background-color: theme("colors.paper");
-  color: theme("colors.ink");
+html,
+body {
+  background-color: theme("colors.screen");
+  color: theme("colors.light");
 }
 
 body {
   font-family: theme("fontFamily.serif");
-  line-height: 1.55;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    /* Лёгкая тёмная виньетка — будто свет от экрана уходит в зал. */
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196, 147, 62, 0.05), transparent 70%),
+    /* «Зернистость» плёнки — едва заметные точки. */
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.012) 0,
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+/* Заголовки — в стилистике афишных шрифтов. */
+h1, h2, h3 {
+  font-family: theme("fontFamily.display");
+  letter-spacing: -0.005em;
+}
+
+/* Ссылки — мягкая золотая подсветка. */
+a {
+  color: inherit;
+}
+a:hover {
+  color: theme("colors.sepia");
+}
+
+/* Утилиты ---------------------------------------------------------- */
+
+/* Полоса перфорации киноплёнки сверху и снизу контейнера. */
+.filmstrip {
+  position: relative;
+  background: theme("colors.velvet");
+  border-top: 1px solid rgba(232, 227, 211, 0.06);
+  border-bottom: 1px solid rgba(232, 227, 211, 0.06);
+}
+.filmstrip::before,
+.filmstrip::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background-color: theme("colors.screen");
+  background-image:
+    radial-gradient(
+      circle at center,
+      theme("colors.velvet") 3px,
+      theme("colors.screen") 3.5px
+    );
+  background-size: 22px 14px;
+  background-repeat: repeat-x;
+  background-position: 6px center;
+}
+.filmstrip::before { top: -7px; }
+.filmstrip::after { bottom: -7px; }
+
+/* Контейнер «кадра» — рамка как граница диафрагмы. */
+.frame {
+  background: theme("colors.velvet");
+  box-shadow: theme("boxShadow.frame");
+  border: 1px solid rgba(232, 227, 211, 0.06);
+}
+
+/* Большой «экран» для героя главной страницы. */
+.cinema-screen {
+  background: linear-gradient(
+    180deg,
+    rgba(232, 227, 211, 0.02) 0%,
+    rgba(232, 227, 211, 0.06) 50%,
+    rgba(232, 227, 211, 0.02) 100%
+  );
+  box-shadow: theme("boxShadow.screen"), theme("boxShadow.frame");
+  border: 1px solid rgba(196, 147, 62, 0.2);
+}
+
+/* Тонкая подпись «титры» — для метаданных. */
+.titre {
+  font-family: theme("fontFamily.mono");
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: theme("colors.sepia_dim");
+}
+
+/* Горизонтальный список фильмов как лента (overflow scroll snap). */
+.reel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 9rem;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: theme("colors.velvet_red") theme("colors.screen");
+}
+.reel > * {
+  scroll-snap-align: start;
 }

@@ -28,7 +28,7 @@ export function Poster({ filename, alt, width = 400, className }: PosterProps) {
     return (
       <div
         className={
-          "aspect-[2/3] w-full bg-ink/5 border border-ink/10 flex items-center justify-center text-ink/30 text-sm " +
+          "aspect-[2/3] w-full bg-light/5 border border-light/10 flex items-center justify-center text-light/30 text-sm " +
           (className ?? "")
         }
         aria-hidden="true"
@@ -43,7 +43,7 @@ export function Poster({ filename, alt, width = 400, className }: PosterProps) {
         href={commonsFilePage(filename)}
         target="_blank"
         rel="noreferrer noopener"
-        className="block border border-ink/10 hover:border-ink/40"
+        className="block border border-light/10 hover:border-light/40"
       >
         <img
           src={commonsUrl(filename, width)}
@@ -52,7 +52,7 @@ export function Poster({ filename, alt, width = 400, className }: PosterProps) {
           className="w-full h-auto block"
         />
       </a>
-      <figcaption className="text-[10px] text-ink/50 leading-tight">
+      <figcaption className="text-[10px] text-light/50 leading-tight">
         Wikimedia Commons
       </figcaption>
     </figure>
@@ -74,7 +74,7 @@ export function Avatar({ filename, alt, size = 28 }: AvatarProps) {
     return (
       <span
         aria-hidden="true"
-        className="inline-block shrink-0 rounded-full bg-ink/10"
+        className="inline-block shrink-0 rounded-full bg-light/10"
         style={{ width: size, height: size }}
       />
     );
@@ -86,7 +86,7 @@ export function Avatar({ filename, alt, size = 28 }: AvatarProps) {
       width={size}
       height={size}
       loading="lazy"
-      className="inline-block shrink-0 rounded-full object-cover bg-ink/5"
+      className="inline-block shrink-0 rounded-full object-cover bg-light/5"
       style={{ width: size, height: size }}
     />
   );
@@ -119,7 +119,7 @@ export function WatchBlock({ youtubeId, titleRu, year }: WatchBlockProps) {
       href={youtubeSearchUrl(titleRu, year)}
       target="_blank"
       rel="noreferrer noopener"
-      className="inline-flex items-center gap-2 px-3 py-2 border border-ink/30 hover:border-ink rounded text-sm"
+      className="inline-flex items-center gap-2 px-3 py-2 border border-light/30 hover:border-light rounded text-sm"
     >
       <span aria-hidden="true">🔍</span>
       Найти на YouTube
@@ -132,23 +132,23 @@ function YouTubeFacade({ videoId, title }: { videoId: string; title: string }) {
   // даёт раскрытие без JS (без iframe), а iframe загружается только
   // после клика на «Загрузить плеер».
   return (
-    <details className="block border border-ink/20 rounded overflow-hidden">
-      <summary className="cursor-pointer list-none flex items-center gap-3 p-3 hover:bg-ink/5">
+    <details className="block border border-light/20 rounded overflow-hidden">
+      <summary className="cursor-pointer list-none flex items-center gap-3 p-3 hover:bg-light/5">
         <img
           src={youtubeThumbnail(videoId)}
           alt=""
           width={120}
           height={90}
           loading="lazy"
-          className="w-30 h-auto rounded border border-ink/10"
+          className="w-30 h-auto rounded border border-light/10"
         />
         <span className="flex-1">
           <span className="block font-medium">Смотреть на YouTube</span>
-          <span className="block text-sm text-ink/60">
+          <span className="block text-sm text-light/60">
             «{title}» — нажмите для открытия плеера.
           </span>
         </span>
-        <span aria-hidden="true" className="text-2xl text-accent">
+        <span aria-hidden="true" className="text-2xl text-sepia">
           ▶
         </span>
       </summary>
@@ -162,7 +162,7 @@ function YouTubeFacade({ videoId, title }: { videoId: string; title: string }) {
           className="w-full h-full border-0"
         />
       </div>
-      <div className="p-2 text-sm text-ink/70 border-t border-ink/10">
+      <div className="p-2 text-sm text-light/70 border-t border-light/10">
         <a
           href={youtubeWatchUrl(videoId)}
           target="_blank"

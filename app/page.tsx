@@ -1,63 +1,151 @@
 import Link from "next/link";
+import type { ComponentProps } from "react";
 
-import { countFilms, listFilms } from "@/lib/queries";
+import { countFilms, listFilms, listTopics } from "@/lib/queries";
+
+type LinkHref = ComponentProps<typeof Link>["href"];
 
 export const dynamic = "force-static";
 
 export default function HomePage() {
   const total = countFilms();
-  const recent = listFilms({ limit: 12 });
+  const recent = listFilms({ limit: 18 });
+  const topics = listTopics();
 
   return (
-    <article className="space-y-10">
-      <header className="space-y-3">
-        <h1 className="text-3xl font-semibold">
-          Кино СССР и стран социалистического лагеря XX века
-        </h1>
-        <p className="text-lg text-ink/80">
-          Открытый исследовательский портал о фильмах, режиссёрах, символах,
-          мотивах и культурном контексте кинематографа социалистических стран
-          1917–1991.
+    <article className="space-y-16">
+      {/* HERO — большой «экран» */}
+      <section className="relative">
+        <div className="cinema-screen aspect-[21/9] rounded-sm flex items-center justify-center px-8 text-center">
+          <div className="space-y-3 max-w-3xl">
+            <p className="titre text-sepia">1917 — 1991 · десять стран</p>
+            <h1 className="font-display text-4xl sm:text-5xl text-light leading-tight">
+              Кино, в котором первый план — то,
+              <br />
+              <span className="text-sepia">о чём нельзя говорить вслух</span>
+            </h1>
+            <p className="text-light/70 max-w-2xl mx-auto">
+              Структурированная база фильмов, режиссёров, символов и мотивов
+              советского и восточноевропейского кинематографа. И корпус
+              разборов второго смыслового ряда — эзопова языка, фигур
+              умолчания и культурного контекста.
+            </p>
+          </div>
+        </div>
+        <p className="titre text-center mt-3">
+          {total} {pluralizeFilms(total)} · {topics.length} тем · растущий каталог
         </p>
-        <p className="text-sm text-ink/60">
-          В базе сейчас <strong>{total}</strong>{" "}
-          {pluralizeFilms(total)}. Все данные —{" "}
-          <Link href="/films" className="underline">
-            открытый каталог
-          </Link>
-          .
-        </p>
-      </header>
+      </section>
 
+      {/* ЛЕНТА — недавно добавленные */}
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold border-b border-ink/10 pb-1">
-          Недавно добавлены
-        </h2>
-        <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
-          {recent.map((f) => (
-            <li key={f.id}>
-              <Link href={`/films/${f.id}`} className="hover:underline">
-                <span className="font-medium">{f.title_ru}</span>
-                <span className="text-ink/60"> · {f.year}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <p>
-          <Link href="/films" className="underline">
+        <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+          <h2 className="font-display text-xl text-light">Недавно добавлены</h2>
+          <Link href="/films" className="titre hover:text-sepia">
             Все фильмы →
           </Link>
-        </p>
+        </header>
+        <div className="filmstrip py-4 px-1">
+          <ul className="reel">
+            {recent.map((f) => (
+              <li key={f.id}>
+                <Link
+                  href={`/films/${f.id}`}
+                  className="block frame p-1 hover:border-sepia/40 transition-colors"
+                >
+                  <FilmThumb title={f.title_ru} />
+                  <div className="px-1 py-1.5">
+                    <p className="text-light text-sm font-medium leading-tight line-clamp-2">
+                      {f.title_ru}
+                    </p>
+                    <p className="titre mt-1">{f.year}</p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <section className="text-sm text-ink/70 border-t border-ink/10 pt-4 space-y-2">
-        <p>
-          Проект в начальной фазе. Каркас данных, схема и веб — полностью open
-          source, без привязки к платным сервисам. Принимаем поправки фактов,
-          новые фильмы и предложения разборов через GitHub.
-        </p>
+      {/* ТЕМЫ */}
+      {topics.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">
+              Тематические разделы
+            </h2>
+            <Link href="/topics" className="titre hover:text-sepia">
+              Все темы →
+            </Link>
+          </header>
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {topics.map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/topics/${t.id}`}
+                  className="frame block p-5 h-full hover:border-sepia/40 transition-colors"
+                >
+                  <p className="titre">
+                    тема · {t.film_count} {pluralizeFilms(t.film_count)}
+                  </p>
+                  <h3 className="font-display text-xl text-light mt-1 leading-tight">
+                    {t.name_ru}
+                  </h3>
+                  <p className="text-light/70 text-sm mt-2 line-clamp-3">
+                    {t.description_ru}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* НАВИГАЦИЯ */}
+      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <NavTile href="/films" titre="каталог" title="Фильмы" hint="по году, стране, режиссёру" />
+        <NavTile href="/people" titre="галерея" title="Люди" hint="режиссёры, актёры, сценаристы" />
+        <NavTile href="/topics" titre="темы" title="Исследовать" hint="хрононавтика и другие срезы" />
+        <NavTile href="/essays" titre="лонгриды" title="Разборы" hint="второй смысловой ряд, скоро" />
       </section>
     </article>
+  );
+}
+
+function NavTile({
+  href,
+  titre,
+  title,
+  hint,
+}: {
+  href: LinkHref;
+  titre: string;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="frame block p-4 hover:border-sepia/40 transition-colors group"
+    >
+      <p className="titre group-hover:text-sepia transition-colors">{titre}</p>
+      <p className="font-display text-lg text-light mt-1">{title}</p>
+      <p className="text-light/50 text-xs mt-1">{hint}</p>
+    </Link>
+  );
+}
+
+function FilmThumb({ title }: { title: string }) {
+  // На главной мы не запрашиваем poster_commons (быстрая выборка через
+  // listFilms). Чтобы получить постеры — добавим отдельный запрос или
+  // расширим listFilms. Пока — стилизованный «слайд» с заголовком как у
+  // негатива до проявки.
+  return (
+    <div className="aspect-[2/3] w-full bg-gradient-to-br from-velvet to-screen flex items-center justify-center border border-light/5 px-2">
+      <span className="titre text-sepia_dim text-[10px] text-center line-clamp-5">
+        {title}
+      </span>
+    </div>
   );
 }
 
