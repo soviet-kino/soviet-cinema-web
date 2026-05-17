@@ -6,6 +6,7 @@ import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
   allFilmIds,
   getFilm,
+  literarySourceOf,
   personsByIds,
   studiosByIds,
 } from "@/lib/queries";
@@ -44,7 +45,10 @@ export default async function FilmPage({ params }: PageProps) {
     ...(film.composer ?? []),
     ...(film.cast?.map((c) => c.person) ?? []),
   ];
-  const peopleMap = personsByIds(allPeopleIds);
+  // Авторов литературного первоисточника тоже стоит подтянуть в peopleMap,
+  // чтобы показать их имена со ссылками на /people/[slug].
+  const litSource = literarySourceOf(slug);
+  const peopleMap = personsByIds([...allPeopleIds, ...(litSource?.authors ?? [])]);
   const studioMap = studiosByIds(film.studio ?? []);
 
   return (
@@ -99,6 +103,31 @@ export default async function FilmPage({ params }: PageProps) {
         <Credit label="Композитор" ids={film.composer} people={peopleMap} />
         <StudioCredit studios={film.studio} studioMap={studioMap} />
       </Section>
+
+      {litSource && (
+        <Section title="Литературный источник">
+          <p>
+            «{litSource.title}»
+            {litSource.year && (
+              <span className="text-light/60"> ({litSource.year})</span>
+            )}
+            {litSource.authors.length > 0 && (
+              <>
+                <span className="text-light/60"> · </span>
+                {litSource.authors.map((aid, i) => {
+                  const a = peopleMap.get(aid);
+                  return (
+                    <span key={aid}>
+                      {i > 0 && ", "}
+                      <PersonName id={aid} person={a} />
+                    </span>
+                  );
+                })}
+              </>
+            )}
+          </p>
+        </Section>
+      )}
 
       {film.cast && film.cast.length > 0 && (
         <Section title="В ролях">

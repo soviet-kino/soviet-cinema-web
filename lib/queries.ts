@@ -291,6 +291,104 @@ export function studiosByIds(ids: string[]): Map<string, Studio> {
   return map;
 }
 
+// ---- references / adaptations -------------------------------------------
+
+interface ReferenceTargetBook {
+  type: "book";
+  title_ru?: string;
+  title_original: string;
+  authors?: string[];
+  year?: number;
+}
+
+interface ReferenceTargetFilm {
+  type: "film";
+  ref: string;
+}
+
+interface ReferenceTargetExternalFilm {
+  type: "external_film";
+  title_ru?: string;
+  title_original: string;
+  year?: number;
+  country?: string;
+  director?: string;
+  wikidata?: string;
+}
+
+type ReferenceTarget =
+  | ReferenceTargetBook
+  | ReferenceTargetFilm
+  | ReferenceTargetExternalFilm;
+
+interface ReferenceData {
+  id: string;
+  source_film: string;
+  target: ReferenceTarget;
+  kind: string;
+  description_ru: string;
+  confidence: string;
+}
+
+let _references: ReferenceData[] | null = null;
+
+function allReferences(): ReferenceData[] {
+  if (_references) return _references;
+  const rows = db()
+    .prepare("SELECT data FROM refs")
+    .all() as { data: string }[];
+  _references = rows.map((r) => JSON.parse(r.data) as ReferenceData);
+  return _references;
+}
+
+/** Фильмы, основанные на произведениях этого автора (через references). */
+export interface AdaptationOfAuthor {
+  film_id: string;
+  title_ru: string;
+  year: number;
+  source_title: string;
+  source_year?: number;
+}
+
+export function filmsAdaptedFromAuthor(authorId: string): AdaptationOfAuthor[] {
+  const refs = allReferences();
+  const out: AdaptationOfAuthor[] = [];
+  for (const r of refs) {
+    if (r.target.type !== "book") continue;
+    if (!r.target.authors?.includes(authorId)) continue;
+    const film = getFilm(r.source_film);
+    if (!film) continue;
+    out.push({
+      film_id: film.id,
+      title_ru: film.title_ru,
+      year: film.year,
+      source_title: r.target.title_ru ?? r.target.title_original,
+      source_year: r.target.year,
+    });
+  }
+  return out.sort((a, b) => b.year - a.year);
+}
+
+/** Литературный источник фильма — если есть reference kind=adaptation к книге. */
+export function literarySourceOf(filmId: string): {
+  title: string;
+  authors: string[];
+  year?: number;
+} | null {
+  const refs = allReferences();
+  for (const r of refs) {
+    if (r.source_film !== filmId) continue;
+    if (r.kind !== "adaptation") continue;
+    if (r.target.type !== "book") continue;
+    return {
+      title: r.target.title_ru ?? r.target.title_original,
+      authors: r.target.authors ?? [],
+      year: r.target.year,
+    };
+  }
+  return null;
+}
+
 // ---- topics --------------------------------------------------------------
 
 export interface TopicListItem {
