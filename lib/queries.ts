@@ -97,6 +97,7 @@ export interface PersonListItem {
   roles: string[];
   birth?: string;
   death?: string;
+  image_commons?: string;
 }
 
 export function listPeople(): PersonListItem[] {
@@ -113,6 +114,7 @@ export function listPeople(): PersonListItem[] {
       roles: p.roles ?? [],
       birth: p.birth,
       death: p.death,
+      image_commons: p.image_commons,
     };
   });
 }
