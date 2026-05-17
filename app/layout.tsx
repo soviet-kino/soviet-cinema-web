@@ -24,6 +24,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <a href="/people" className="hover:underline">
                 Люди
               </a>
+              <a href="/topics" className="hover:underline">
+                Темы
+              </a>
               <a href="/essays" className="hover:underline">
                 Разборы
               </a>

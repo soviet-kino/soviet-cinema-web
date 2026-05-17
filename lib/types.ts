@@ -40,7 +40,19 @@ export interface Film {
   censorship_status?: string;
   /** Имя файла на Wikimedia Commons (Wikidata P18). */
   poster_commons?: string;
+  /** Slug-и тематических разделов, к которым относится фильм. */
+  topics?: string[];
   external_ids?: ExternalIds;
+  sources?: string[];
+}
+
+export interface Topic {
+  id: string;
+  name_ru: string;
+  name_original?: string;
+  description_ru: string;
+  long_description_ru?: string;
+  related_motifs?: string[];
   sources?: string[];
 }
 
