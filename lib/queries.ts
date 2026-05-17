@@ -122,9 +122,20 @@ export function availableYears(country?: string): number[] {
   return rows.map((r) => r.year);
 }
 
-/** Список стран с количеством фильмов: для чипов-фильтров на /films. */
+/**
+ * Список всех стран из словаря с количеством фильмов в текущей выборке.
+ * Страны без фильмов (например, МНР) тоже возвращаются — с count = 0;
+ * UI показывает их приглушённо, чтобы фильтр был полным и стабильным.
+ */
 export function availableCountries(year?: number): { code: string; count: number }[] {
   const conn = db();
+  // Все коды из словаря — в порядке, как они лежат в vocabularies/countries.yaml.
+  const allCodes = (
+    conn
+      .prepare("SELECT code FROM vocabulary WHERE kind = 'country' ORDER BY rowid")
+      .all() as { code: string }[]
+  ).map((r) => r.code);
+
   const rows = (year != null
     ? conn.prepare("SELECT country FROM films WHERE year = ?").all(year)
     : conn.prepare("SELECT country FROM films").all()) as { country: string | null }[];
@@ -135,9 +146,7 @@ export function availableCountries(year?: number): { code: string; count: number
       counts.set(c, (counts.get(c) ?? 0) + 1);
     }
   }
-  return [...counts.entries()]
-    .map(([code, count]) => ({ code, count }))
-    .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+  return allCodes.map((code) => ({ code, count: counts.get(code) ?? 0 }));
 }
 
 export function getFilm(id: string): Film | null {
