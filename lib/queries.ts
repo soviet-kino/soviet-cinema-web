@@ -136,26 +136,35 @@ export type VocabKind =
   | "censorship_status"
   | "language";
 
-let _vocabCache: Map<string, Map<string, string>> | null = null;
+export interface VocabEntry {
+  name: string;
+  description: string | null;
+}
 
-function loadVocabCache(): Map<string, Map<string, string>> {
+let _vocabCache: Map<string, Map<string, VocabEntry>> | null = null;
+
+function loadVocabCache(): Map<string, Map<string, VocabEntry>> {
   if (_vocabCache) return _vocabCache;
-  const cache = new Map<string, Map<string, string>>();
+  const cache = new Map<string, Map<string, VocabEntry>>();
   const rows = db()
-    .prepare("SELECT kind, code, name_ru FROM vocabulary")
-    .all() as { kind: string; code: string; name_ru: string }[];
+    .prepare("SELECT kind, code, name_ru, description_ru FROM vocabulary")
+    .all() as { kind: string; code: string; name_ru: string; description_ru: string | null }[];
   for (const r of rows) {
     let m = cache.get(r.kind);
     if (!m) {
       m = new Map();
       cache.set(r.kind, m);
     }
-    m.set(r.code, r.name_ru);
+    m.set(r.code, { name: r.name_ru, description: r.description_ru });
   }
   _vocabCache = cache;
   return cache;
 }
 
+export function vocabEntry(kind: VocabKind, code: string): VocabEntry | null {
+  return loadVocabCache().get(kind)?.get(code) ?? null;
+}
+
 export function vocabName(kind: VocabKind, code: string): string {
-  return loadVocabCache().get(kind)?.get(code) ?? code;
+  return vocabEntry(kind, code)?.name ?? code;
 }

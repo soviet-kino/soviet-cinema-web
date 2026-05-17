@@ -70,6 +70,7 @@ function main() {
       kind TEXT,
       code TEXT,
       name_ru TEXT,
+      description_ru TEXT,
       PRIMARY KEY (kind, code)
     );
   `);
@@ -87,7 +88,7 @@ function main() {
     "INSERT INTO studios (id, name_ru, country, data) VALUES (?, ?, ?, ?)",
   );
   const insVocab = db.prepare(
-    "INSERT INTO vocabulary (kind, code, name_ru) VALUES (?, ?, ?)",
+    "INSERT INTO vocabulary (kind, code, name_ru, description_ru) VALUES (?, ?, ?, ?)",
   );
 
   // Перечень соответствует vocabularies/ в soviet-cinema-data.
@@ -137,7 +138,7 @@ function main() {
       const raw = yaml.load(fs.readFileSync(vp, "utf8"));
       for (const v of raw?.values ?? []) {
         if (!v?.code) continue;
-        insVocab.run(kind, v.code, v.name_ru ?? v.code);
+        insVocab.run(kind, v.code, v.name_ru ?? v.code, v.description_ru ?? null);
       }
     }
   });
