@@ -66,6 +66,12 @@ function main() {
       title_original,
       title_en
     );
+    CREATE TABLE vocabulary (
+      kind TEXT,
+      code TEXT,
+      name_ru TEXT,
+      PRIMARY KEY (kind, code)
+    );
   `);
 
   const insFilm = db.prepare(
@@ -80,6 +86,22 @@ function main() {
   const insStudio = db.prepare(
     "INSERT INTO studios (id, name_ru, country, data) VALUES (?, ?, ?, ?)",
   );
+  const insVocab = db.prepare(
+    "INSERT INTO vocabulary (kind, code, name_ru) VALUES (?, ?, ?)",
+  );
+
+  // Перечень соответствует vocabularies/ в soviet-cinema-data.
+  // kind хранится в единственном числе — так удобнее обращаться из UI.
+  const vocabFiles = {
+    country: "countries.yaml",
+    republic: "republics.yaml",
+    genre: "genres.yaml",
+    role: "roles.yaml",
+    motif_category: "motif_categories.yaml",
+    reference_kind: "reference_kinds.yaml",
+    censorship_status: "censorship_statuses.yaml",
+    language: "languages.yaml",
+  };
 
   const tx = db.transaction(() => {
     for (const f of films) {
@@ -109,11 +131,21 @@ function main() {
         JSON.stringify(s),
       );
     }
+    for (const [kind, file] of Object.entries(vocabFiles)) {
+      const vp = path.join(DATA_ROOT, "vocabularies", file);
+      if (!fs.existsSync(vp)) continue;
+      const raw = yaml.load(fs.readFileSync(vp, "utf8"));
+      for (const v of raw?.values ?? []) {
+        if (!v?.code) continue;
+        insVocab.run(kind, v.code, v.name_ru ?? v.code);
+      }
+    }
   });
   tx();
 
+  const vocabCount = db.prepare("SELECT COUNT(*) AS c FROM vocabulary").get().c;
   console.log(
-    `[build-db] films=${films.length} people=${people.length} studios=${studios.length} → ${path.relative(ROOT, OUT)}`,
+    `[build-db] films=${films.length} people=${people.length} studios=${studios.length} vocab=${vocabCount} → ${path.relative(ROOT, OUT)}`,
   );
 }
 

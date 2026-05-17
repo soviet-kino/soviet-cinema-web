@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Abbr } from "@/lib/abbr";
 import { availableYears, listFilms } from "@/lib/queries";
 
 interface PageProps {
@@ -43,7 +44,16 @@ export default async function FilmsPage({ searchParams }: PageProps) {
             </Link>
             <span className="text-sm text-ink/60 shrink-0">
               {f.year}
-              {f.country.length > 0 && <span className="ml-2">{f.country.join(", ")}</span>}
+              {f.country.length > 0 && (
+                <span className="ml-2">
+                  {f.country.map((c, i) => (
+                    <span key={c}>
+                      {i > 0 && ", "}
+                      <Abbr kind="country" code={c} />
+                    </span>
+                  ))}
+                </span>
+              )}
             </span>
           </li>
         ))}
