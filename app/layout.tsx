@@ -8,44 +8,54 @@ export const metadata: Metadata = {
     "Открытый исследовательский портал о кино СССР и стран социалистического лагеря XX века.",
 };
 
+const NAV = [
+  { href: "/films", label: "Фильмы" },
+  { href: "/people", label: "Люди" },
+  { href: "/topics", label: "Темы" },
+  { href: "/essays", label: "Разборы" },
+];
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body>
-        <header className="border-b border-ink/10">
-          <div className="mx-auto max-w-5xl px-4 py-6 flex items-baseline justify-between">
-            <a href="/" className="text-xl font-semibold">
-              Soviet Bloc Cinema
+        <header className="border-b border-light/10">
+          <div className="mx-auto max-w-6xl px-6 py-5 flex items-baseline justify-between gap-6 flex-wrap">
+            <a href="/" className="group">
+              <p className="titre">soviet • bloc • cinema</p>
+              <p className="font-display text-2xl text-light leading-none mt-1 group-hover:text-sepia transition-colors">
+                Кинолетопись Восточного блока
+              </p>
             </a>
-            <nav className="space-x-4 text-sm">
-              <a href="/films" className="hover:underline">
-                Фильмы
-              </a>
-              <a href="/people" className="hover:underline">
-                Люди
-              </a>
-              <a href="/topics" className="hover:underline">
-                Темы
-              </a>
-              <a href="/essays" className="hover:underline">
-                Разборы
-              </a>
+            <nav className="flex gap-5 text-sm font-mono uppercase tracking-wider text-light/70">
+              {NAV.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="hover:text-sepia transition-colors"
+                >
+                  {item.label}
+                </a>
+              ))}
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
-        <footer className="border-t border-ink/10 mt-16 py-8 text-sm text-ink/70">
-          <div className="mx-auto max-w-5xl px-4 space-y-1">
+
+        <main className="mx-auto max-w-6xl px-6 py-12">{children}</main>
+
+        <footer className="border-t border-light/10 mt-24 py-8 text-xs">
+          <div className="mx-auto max-w-6xl px-6 grid sm:grid-cols-2 gap-4 text-light/50">
             <p>
-              Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры — TMDB,
-              с указанием правообладателей.
+              Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры — Wikimedia Commons и TMDB, по лицензиям правообладателей.
             </p>
-            <p>
+            <p className="sm:text-right">
               Исходники:{" "}
-              <a className="underline" href="https://github.com/soviet-kino">
+              <a
+                className="underline decoration-dotted underline-offset-2"
+                href="https://github.com/soviet-kino"
+              >
                 github.com/soviet-kino
               </a>
-              .
             </p>
           </div>
         </footer>

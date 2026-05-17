@@ -56,12 +56,12 @@ export default async function FilmPage({ params }: PageProps) {
         <header className="space-y-1">
           <h1 className="text-3xl font-semibold">{film.title_ru}</h1>
           {film.title_original && film.title_original !== film.title_ru && (
-            <p className="text-lg text-ink/70 italic">«{film.title_original}»</p>
+            <p className="text-lg text-light/70 italic">«{film.title_original}»</p>
           )}
           {film.title_en && film.title_en !== film.title_ru && (
-            <p className="text-sm text-ink/60">{film.title_en}</p>
+            <p className="text-sm text-light/60">{film.title_en}</p>
           )}
-          <p className="text-ink/70">
+          <p className="text-light/70">
             {film.year}
             {film.country.length > 0 && (
               <span>
@@ -114,7 +114,7 @@ export default async function FilmPage({ params }: PageProps) {
                   />
                   <span>
                     <PersonName id={c.person} person={p} />
-                    {c.role && <span className="text-ink/60"> — {c.role}</span>}
+                    {c.role && <span className="text-light/60"> — {c.role}</span>}
                   </span>
                 </li>
               );
@@ -148,7 +148,7 @@ export default async function FilmPage({ params }: PageProps) {
         </Section>
       )}
 
-      <p className="text-sm text-ink/50">
+      <p className="text-sm text-light/50">
         slug: <code>{film.id}</code>
       </p>
     </article>
@@ -158,7 +158,7 @@ export default async function FilmPage({ params }: PageProps) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-xl font-semibold border-b border-ink/10 pb-1">
+      <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
         {title}
       </h2>
       <div className="space-y-1">{children}</div>
@@ -178,7 +178,7 @@ function Credit({
   if (!ids || ids.length === 0) return null;
   return (
     <p>
-      <span className="text-ink/60 mr-2">{label}:</span>
+      <span className="text-light/60 mr-2">{label}:</span>
       {ids.map((id, i) => (
         <span key={id}>
           {i > 0 && ", "}
@@ -199,13 +199,13 @@ function StudioCredit({
   if (!studios || studios.length === 0) return null;
   return (
     <p>
-      <span className="text-ink/60 mr-2">Студия:</span>
+      <span className="text-light/60 mr-2">Студия:</span>
       {studios.map((id, i) => {
         const s = studioMap.get(id);
         return (
           <span key={id}>
             {i > 0 && ", "}
-            {s ? s.name_ru : <code className="text-ink/50">{id}</code>}
+            {s ? s.name_ru : <code className="text-light/50">{id}</code>}
           </span>
         );
       })}
@@ -214,7 +214,7 @@ function StudioCredit({
 }
 
 function PersonName({ id, person }: { id: string; person?: Person }) {
-  if (!person) return <code className="text-ink/50">{id}</code>;
+  if (!person) return <code className="text-light/50">{id}</code>;
   return (
     <Link href={`/people/${id}`} className="hover:underline">
       {person.name_ru}
@@ -238,7 +238,7 @@ function Tags({ film }: { film: Film }) {
         {tags.map((t) => (
           <li
             key={`${t.kind}:${t.code}`}
-            className="px-2 py-0.5 rounded border border-ink/20 text-ink/70"
+            className="px-2 py-0.5 rounded border border-light/20 text-light/70"
           >
             {t.kind === "color" ? (
               t.code === "bw"
@@ -258,7 +258,7 @@ function Tags({ film }: { film: Film }) {
 
 function ExternalIdsView({ film }: { film: Film }) {
   const ids = film.external_ids;
-  if (!ids) return <p className="text-ink/50">—</p>;
+  if (!ids) return <p className="text-light/50">—</p>;
   const items: { label: string; href: string; value: string }[] = [];
   if (ids.wikidata)
     items.push({
@@ -284,12 +284,12 @@ function ExternalIdsView({ film }: { film: Film }) {
       value: ids.youtube,
       href: `https://www.youtube.com/watch?v=${ids.youtube}`,
     });
-  if (items.length === 0) return <p className="text-ink/50">—</p>;
+  if (items.length === 0) return <p className="text-light/50">—</p>;
   return (
     <ul className="space-y-1">
       {items.map((i) => (
         <li key={i.label}>
-          <span className="text-ink/60 mr-2">{i.label}:</span>
+          <span className="text-light/60 mr-2">{i.label}:</span>
           <a
             href={i.href}
             target="_blank"

@@ -47,9 +47,9 @@ export default async function PersonPage({ params }: PageProps) {
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold">{person.name_ru}</h1>
           {person.name_original && person.name_original !== person.name_ru && (
-            <p className="text-lg text-ink/70 italic">{person.name_original}</p>
+            <p className="text-lg text-light/70 italic">{person.name_original}</p>
           )}
-          <p className="text-ink/70">
+          <p className="text-light/70">
             {person.birth && <span>{person.birth}</span>}
             {person.death && <span> — {person.death}</span>}
             {(person.roles ?? []).length > 0 && (
@@ -69,7 +69,7 @@ export default async function PersonPage({ params }: PageProps) {
 
       {films.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold border-b border-ink/10 pb-1">
+          <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
             Фильмография ({films.length})
           </h2>
           <ul className="space-y-1">
@@ -79,13 +79,13 @@ export default async function PersonPage({ params }: PageProps) {
                 className="flex items-baseline justify-between gap-4"
               >
                 <Link href={`/films/${f.film_id}`} className="hover:underline">
-                  <span className="text-ink/60 mr-2">{f.year}</span>
+                  <span className="text-light/60 mr-2">{f.year}</span>
                   <span className="font-medium">{f.title_ru}</span>
                 </Link>
-                <span className="text-sm text-ink/60 shrink-0">
+                <span className="text-sm text-light/60 shrink-0">
                   {ROLE_LABEL[f.role] ?? f.role}
                   {f.character && (
-                    <span className="text-ink/50"> — {f.character}</span>
+                    <span className="text-light/50"> — {f.character}</span>
                   )}
                 </span>
               </li>
@@ -93,11 +93,11 @@ export default async function PersonPage({ params }: PageProps) {
           </ul>
         </section>
       ) : (
-        <p className="text-ink/60">В базе нет фильмов с этим участником.</p>
+        <p className="text-light/60">В базе нет фильмов с этим участником.</p>
       )}
 
       {person.external_ids?.wikidata && (
-        <section className="text-sm text-ink/60">
+        <section className="text-sm text-light/60">
           <a
             href={`https://www.wikidata.org/wiki/${person.external_ids.wikidata}`}
             target="_blank"
@@ -109,7 +109,7 @@ export default async function PersonPage({ params }: PageProps) {
         </section>
       )}
 
-      <p className="text-sm text-ink/50">
+      <p className="text-sm text-light/50">
         slug: <code>{person.id}</code>
       </p>
     </article>

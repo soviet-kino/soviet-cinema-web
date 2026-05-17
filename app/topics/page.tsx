@@ -10,7 +10,7 @@ export default function TopicsPage() {
     <section className="space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Темы</h1>
-        <p className="text-ink/70">
+        <p className="text-light/70">
           Содержательные разделы, по которым курируется подборка фильмов и
           разборов. В отличие от жанра (форма) и мотива (повторяющийся
           образ), тема — это исследовательский угол: что именно мы
@@ -19,23 +19,23 @@ export default function TopicsPage() {
       </header>
 
       {topics.length === 0 ? (
-        <p className="text-ink/60">Тем пока нет.</p>
+        <p className="text-light/60">Тем пока нет.</p>
       ) : (
         <ul className="space-y-4">
           {topics.map((t) => (
             <li
               key={t.id}
-              className="border border-ink/10 rounded p-4 hover:border-ink/40 transition-colors"
+              className="border border-light/10 rounded p-4 hover:border-light/40 transition-colors"
             >
               <Link href={`/topics/${t.id}`} className="block">
                 <h2 className="text-xl font-semibold">
                   {t.name_ru}{" "}
-                  <span className="text-ink/50 text-sm font-normal">
+                  <span className="text-light/50 text-sm font-normal">
                     · {t.film_count}{" "}
                     {pluralizeFilms(t.film_count)}
                   </span>
                 </h2>
-                <p className="text-ink/70 mt-1">{t.description_ru}</p>
+                <p className="text-light/70 mt-1">{t.description_ru}</p>
               </Link>
             </li>
           ))}
