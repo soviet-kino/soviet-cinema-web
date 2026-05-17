@@ -520,3 +520,57 @@ export function vocabEntry(kind: VocabKind, code: string): VocabEntry | null {
 export function vocabName(kind: VocabKind, code: string): string {
   return vocabEntry(kind, code)?.name ?? code;
 }
+
+// ---- FTS-поиск -----------------------------------------------------------
+
+export interface SearchResult {
+  id: string;
+  title_ru: string;
+  title_original: string;
+  year: number;
+  country: string[];
+}
+
+/**
+ * Поиск фильмов по title_ru / title_original / title_en через FTS5.
+ *
+ * Поддерживает префиксы: `зеркал*`. Если запрос — несколько слов,
+ * комбинируем как AND. На пустом / коротком запросе возвращаем пусто.
+ */
+export function searchFilms(q: string, limit = 40): SearchResult[] {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return [];
+  // FTS5 принимает запросы вроде `зеркал* отец` — токенизирует по пробелам.
+  // Удаляем символы, которые ломают синтаксис FTS (кавычки, скобки, минусы).
+  const safe = trimmed.replace(/["()\-]/g, " ").replace(/\s+/g, " ").trim();
+  if (!safe) return [];
+  // Каждое слово как префикс — это вернёт «зерк» → «зеркало», «зеркальный».
+  const ftsQuery = safe
+    .split(" ")
+    .map((w) => `${w}*`)
+    .join(" ");
+  const conn = db();
+  const rows = conn
+    .prepare(
+      `SELECT f.id, f.title_ru, f.title_original, f.year, f.country
+         FROM films_fts fts
+         JOIN films f ON f.id = fts.id
+        WHERE films_fts MATCH ?
+        ORDER BY f.year DESC, f.title_ru COLLATE NOCASE
+        LIMIT ?`,
+    )
+    .all(ftsQuery, limit) as {
+    id: string;
+    title_ru: string | null;
+    title_original: string | null;
+    year: number;
+    country: string | null;
+  }[];
+  return rows.map((r) => ({
+    id: r.id,
+    title_ru: r.title_ru ?? r.id,
+    title_original: r.title_original ?? r.title_ru ?? r.id,
+    year: r.year,
+    country: r.country ? r.country.split(",") : [],
+  }));
+}

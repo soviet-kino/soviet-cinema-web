@@ -27,17 +27,27 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 Кинолетопись Восточного блока
               </p>
             </a>
-            <nav className="flex gap-5 text-sm font-mono uppercase tracking-wider text-light/70">
-              {NAV.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="hover:text-sepia transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+            <div className="flex items-center gap-5 flex-wrap">
+              <nav className="flex gap-5 text-sm font-mono uppercase tracking-wider text-light/70">
+                {NAV.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="hover:text-sepia transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                ))}
+              </nav>
+              <form action="/search" method="get" className="flex">
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Поиск…"
+                  className="bg-velvet border border-light/20 rounded px-2 py-1 text-sm text-light placeholder-light/40 focus:border-sepia focus:outline-none w-36"
+                />
+              </form>
+            </div>
           </div>
         </header>
 
