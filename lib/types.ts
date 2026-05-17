@@ -46,6 +46,15 @@ export interface Film {
   sources?: string[];
 }
 
+export interface TopicFilter {
+  year_from?: number;
+  year_to?: number;
+  director?: string;
+  screenwriter?: string;
+  book_author?: string;
+  country?: string;
+}
+
 export interface Topic {
   id: string;
   name_ru: string;
@@ -53,6 +62,7 @@ export interface Topic {
   description_ru: string;
   long_description_ru?: string;
   related_motifs?: string[];
+  filter?: TopicFilter;
   sources?: string[];
 }
 

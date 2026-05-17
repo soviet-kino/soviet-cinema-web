@@ -432,23 +432,16 @@ export function listTopics(): TopicListItem[] {
   const rows = conn
     .prepare("SELECT id, data FROM topics ORDER BY name_ru COLLATE NOCASE")
     .all() as { id: string; data: string }[];
-  const films = conn.prepare("SELECT data FROM films").all() as { data: string }[];
-  // Считаем сколько фильмов привязано к каждому топику. На 1k+ фильмах
-  // это меньше миллисекунды; разворачивать в отдельную таблицу не нужно.
-  const counts = new Map<string, number>();
-  for (const r of films) {
-    const f = JSON.parse(r.data) as Film;
-    for (const t of f.topics ?? []) {
-      counts.set(t, (counts.get(t) ?? 0) + 1);
-    }
-  }
+  // film_count считаем через filmsByTopic — он умеет и явные привязки, и
+  // декларативные фильтры. Это медленнее наивного подсчёта, но на 3k+
+  // фильмах всё ещё милисекунды.
   return rows.map((r) => {
     const t = JSON.parse(r.data) as Topic;
     return {
       id: t.id,
       name_ru: t.name_ru,
       description_ru: t.description_ru,
-      film_count: counts.get(t.id) ?? 0,
+      film_count: filmsByTopic(t.id).length,
     };
   });
 }
@@ -468,7 +461,21 @@ export function allTopicIds(): string[] {
   return rows.map((r) => r.id);
 }
 
+/**
+ * Подборка фильмов темы.
+ *
+ * Объединяет:
+ *  - явная привязка через Film.topics;
+ *  - декларативный Topic.filter (director / screenwriter / book_author /
+ *    year_from / year_to / country).
+ *
+ * Делает один сквозной проход по таблице. На текущих ~3.5k фильмах
+ * это меньше 20 мс; при росте на порядок переедет на отдельную
+ * таблицу film_topic_match.
+ */
 export function filmsByTopic(topicId: string): FilmListItem[] {
+  const topic = getTopic(topicId);
+  const filter = topic?.filter;
   const conn = db();
   const rows = conn
     .prepare("SELECT id, year, title_ru, title_original, country, data FROM films")
@@ -480,10 +487,50 @@ export function filmsByTopic(topicId: string): FilmListItem[] {
     country: string | null;
     data: string;
   }[];
+  // Если фильтр требует book_author — сначала собираем slug-и фильмов из
+  // references, где автор книги совпадает.
+  let filmsFromRefs: Set<string> | null = null;
+  if (filter?.book_author) {
+    filmsFromRefs = new Set();
+    for (const r of allReferences()) {
+      if (r.target.type !== "book") continue;
+      if (!r.target.authors?.includes(filter.book_author)) continue;
+      filmsFromRefs.add(r.source_film);
+    }
+  }
+
   const out: FilmListItem[] = [];
+  const seen = new Set<string>();
   for (const r of rows) {
     const f = JSON.parse(r.data) as Film;
-    if (f.topics?.includes(topicId)) {
+    let matches = false;
+    if (f.topics?.includes(topicId)) matches = true;
+    if (!matches && filter) {
+      const c1 =
+        filter.year_from == null || (r.year != null && r.year >= filter.year_from);
+      const c2 =
+        filter.year_to == null || (r.year != null && r.year <= filter.year_to);
+      const c3 = !filter.director || f.director?.includes(filter.director);
+      const c4 = !filter.screenwriter || f.screenwriter?.includes(filter.screenwriter);
+      const c5 = !filter.country || f.country?.includes(filter.country);
+      const c6 = !filter.book_author || filmsFromRefs?.has(r.id);
+      if (c1 && c2 && c3 && c4 && c5 && c6) {
+        // book_author без других условий — должен быть хотя бы один
+        // фильтр сработавший. Здесь проверка book_author даёт это сама.
+        // Если ни одного фильтра не задано в Topic — Topic.filter ничего
+        // не добавляет (только явные топики).
+        const anyFilterSet =
+          filter.year_from != null ||
+          filter.year_to != null ||
+          filter.director ||
+          filter.screenwriter ||
+          filter.country ||
+          filter.book_author;
+        if (anyFilterSet) matches = true;
+      }
+    }
+    if (matches && !seen.has(r.id)) {
+      seen.add(r.id);
       out.push({
         id: r.id,
         title_ru: r.title_ru ?? r.id,
