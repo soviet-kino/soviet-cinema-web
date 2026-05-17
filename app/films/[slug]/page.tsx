@@ -205,7 +205,12 @@ function StudioCredit({
         return (
           <span key={id}>
             {i > 0 && ", "}
-            {s ? s.name_ru : <code className="text-light/50">{id}</code>}
+            <Link
+              href={`/studios/${id}`}
+              className="hover:underline hover:text-sepia"
+            >
+              {s ? s.name_ru : <code className="text-light/50">{id}</code>}
+            </Link>
           </span>
         );
       })}
