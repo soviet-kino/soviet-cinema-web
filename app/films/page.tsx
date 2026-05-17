@@ -16,24 +16,25 @@ interface PageProps {
     year?: string;
     country?: string;
     studio?: string;
+    genre?: string;
   }>;
 }
 
-// Без force-static, потому что searchParams (country/year/studio) — динамика.
-// Иначе Next.js кэширует один вариант (для года по умолчанию) и игнорирует
-// query-параметры на проде.
+// Без force-static, потому что searchParams — динамика. Иначе Next.js
+// кэширует один вариант (для года по умолчанию) и игнорирует параметры.
 export default async function FilmsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const country = params.country?.trim() || undefined;
   const studio = params.studio?.trim() || undefined;
+  const genre = params.genre?.trim() || undefined;
   const yearParam = params.year?.trim();
   const total = countFilms();
 
-  // Если есть фильтр по студии или стране без явного года — показываем
-  // все годы выборки (студия — узкий срез, простыни не будет). Иначе
-  // (нет ни студии, ни страны, ни года) — открываем самый поздний год.
+  // Если есть фильтр по студии/стране/жанру без явного года — показываем
+  // всю выборку без year-дефолта; иначе по умолчанию — самый поздний год.
   const yearsForCountry = availableYears(country);
-  const defaultYearForList = studio ? undefined : yearsForCountry[0];
+  const hasNonYearFilter = !!(studio || genre);
+  const defaultYearForList = hasNonYearFilter ? undefined : yearsForCountry[0];
   const year =
     yearParam === "all"
       ? undefined
@@ -41,7 +42,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         ? Number(yearParam)
         : defaultYearForList;
 
-  const films = listFilms({ year, country, studio });
+  const films = listFilms({ year, country, studio, genre });
   const countriesForYear = availableCountries(year);
 
   return (
@@ -60,6 +61,12 @@ export default async function FilmsPage({ searchParams }: PageProps) {
             )}
             {year && <> · {year}</>}
             {studio && <> · студия {studio}</>}
+            {genre && (
+              <>
+                {" · "}
+                <Abbr kind="genre" code={genre} display="name" />
+              </>
+            )}
           </p>
         </div>
       </header>
@@ -68,7 +75,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
       <FilterRow label="страна">
         <ChipLink
           active={!country}
-          href={hrefWith({ country: undefined, year: yearParam, studio })}
+          href={hrefWith({ country: undefined, year: yearParam, studio, genre })}
           label="Все"
         />
         {countriesForYear.map((c) => (
@@ -76,7 +83,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
             key={c.code}
             active={country === c.code}
             disabled={c.count === 0 && country !== c.code}
-            href={hrefWith({ country: c.code, year: yearParam, studio })}
+            href={hrefWith({ country: c.code, year: yearParam, studio, genre })}
             label={
               <span>
                 <Abbr kind="country" code={c.code} />{" "}
@@ -91,14 +98,14 @@ export default async function FilmsPage({ searchParams }: PageProps) {
       <FilterRow label="год">
         <ChipLink
           active={year == null}
-          href={hrefWith({ country, year: "all", studio })}
+          href={hrefWith({ country, year: "all", studio, genre })}
           label="Все"
         />
         {yearsForCountry.map((y) => (
           <ChipLink
             key={y}
             active={year === y}
-            href={hrefWith({ country, year: String(y), studio })}
+            href={hrefWith({ country, year: String(y), studio, genre })}
             label={String(y)}
           />
         ))}
@@ -193,15 +200,18 @@ function hrefWith({
   country,
   year,
   studio,
+  genre,
 }: {
   country?: string;
   year?: string;
   studio?: string;
+  genre?: string;
 }): LinkHref {
   const query: Record<string, string> = {};
   if (country) query.country = country;
   if (year) query.year = year;
   if (studio) query.studio = studio;
+  if (genre) query.genre = genre;
   return Object.keys(query).length
     ? { pathname: "/films", query }
     : { pathname: "/films" };

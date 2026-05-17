@@ -41,6 +41,8 @@ export function listFilms(opts?: {
   country?: string;
   studio?: string;
   topic?: string;
+  genre?: string;
+  director?: string;
   limit?: number;
 }): FilmListItem[] {
   const conn = db();
@@ -78,6 +80,24 @@ export function listFilms(opts?: {
       )`,
     );
     params.push(opts.topic);
+  }
+  if (opts?.genre) {
+    where.push(
+      `id IN (
+        SELECT films.id FROM films, json_each(json_extract(films.data, '$.genre')) je
+        WHERE je.value = ?
+      )`,
+    );
+    params.push(opts.genre);
+  }
+  if (opts?.director) {
+    where.push(
+      `id IN (
+        SELECT films.id FROM films, json_each(json_extract(films.data, '$.director')) je
+        WHERE je.value = ?
+      )`,
+    );
+    params.push(opts.director);
   }
   const sql = `
     SELECT id, year, title_ru, title_original, country
