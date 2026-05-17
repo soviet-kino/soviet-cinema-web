@@ -34,6 +34,7 @@ export interface FilmListItem {
   title_original: string;
   year: number;
   country: string[];
+  poster_commons?: string;
 }
 
 export function listFilms(opts?: {
@@ -100,20 +101,24 @@ export function listFilms(opts?: {
     params.push(opts.director);
   }
   const sql = `
-    SELECT id, year, title_ru, title_original, country
+    SELECT id, year, title_ru, title_original, country,
+           json_extract(data, '$.poster_commons') AS poster_commons
     FROM films
     ${where.length ? "WHERE " + where.join(" AND ") : ""}
     ORDER BY year DESC, title_ru COLLATE NOCASE
     ${opts?.limit ? "LIMIT ?" : ""}
   `;
   if (opts?.limit) params.push(opts.limit);
-  const rows = conn.prepare(sql).all(...params) as FilmRow[];
+  const rows = conn.prepare(sql).all(...params) as (FilmRow & {
+    poster_commons: string | null;
+  })[];
   return rows.map((r) => ({
     id: r.id,
     title_ru: r.title_ru ?? r.id,
     title_original: r.title_original ?? r.title_ru ?? r.id,
     year: r.year,
     country: r.country ? r.country.split(",") : [],
+    poster_commons: r.poster_commons ?? undefined,
   }));
 }
 
