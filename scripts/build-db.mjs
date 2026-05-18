@@ -205,6 +205,162 @@ function main() {
   console.log(
     `[build-db] films=${films.length} people=${people.length} studios=${studios.length} topics=${topics.length} refs=${references.length} vocab=${vocabCount} → ${path.relative(ROOT, OUT)}`,
   );
+
+  // ----- генерация JSON-индексов для клиентских компонентов ---------------
+  //
+  // На Cloudflare Pages (static export) SSR-фильтрация по searchParams
+  // не работает. Поэтому всю «лёгкую» базу — без полных YAML-данных —
+  // отдаём как статические JSON-файлы в public/data/. Клиент скачает
+  // один раз и фильтрует в памяти.
+  //
+  // SQLite-БД остаётся для server-time detail-страниц через
+  // generateStaticParams — они пре-рендерятся в HTML на этапе билда.
+
+  const PUBLIC_DATA = path.join(ROOT, "public", "data");
+  fs.rmSync(PUBLIC_DATA, { recursive: true, force: true });
+  fs.mkdirSync(PUBLIC_DATA, { recursive: true });
+
+  const writeJson = (name, data) => {
+    fs.writeFileSync(path.join(PUBLIC_DATA, name), JSON.stringify(data));
+  };
+
+  // films-index: минимальные поля для list/filter UI.
+  const filmsIndex = films.map((f) => ({
+    id: f.id,
+    title_ru: f.title_ru ?? f.id,
+    title_original: f.title_original ?? f.title_ru ?? f.id,
+    title_en: f.title_en,
+    year: f.year ?? null,
+    country: f.country ?? [],
+    republic: f.republic,
+    studio: f.studio ?? [],
+    director: f.director ?? [],
+    genre: f.genre ?? [],
+    topics: f.topics ?? [],
+    poster_commons: f.poster_commons,
+    youtube: f.external_ids?.youtube,
+  }));
+  writeJson("films-index.json", filmsIndex);
+
+  const peopleIndex = people.map((p) => ({
+    id: p.id,
+    name_ru: p.name_ru,
+    name_original: p.name_original,
+    name_translit: p.name_translit,
+    roles: p.roles ?? [],
+    birth: p.birth,
+    death: p.death,
+    image_commons: p.image_commons,
+  }));
+  writeJson("people-index.json", peopleIndex);
+
+  // Студии — со счётчиком фильмов.
+  const studioFilmCount = new Map();
+  for (const f of films) {
+    for (const s of f.studio ?? []) {
+      studioFilmCount.set(s, (studioFilmCount.get(s) ?? 0) + 1);
+    }
+  }
+  writeJson(
+    "studios.json",
+    studios.map((s) => ({
+      id: s.id,
+      name_ru: s.name_ru,
+      name_original: s.name_original,
+      country: s.country,
+      founded: s.founded,
+      image_commons: s.image_commons,
+      external_ids: s.external_ids,
+      film_count: studioFilmCount.get(s.id) ?? 0,
+    })),
+  );
+
+  writeJson("topics.json", topics);
+  writeJson("motifs.json", motifs);
+  writeJson("refs.json", references);
+
+  // Словари — {kind: {code: {name, description}}}.
+  const vocabulary = {};
+  for (const [kind, file] of Object.entries(vocabFiles)) {
+    const vp = path.join(DATA_ROOT, "vocabularies", file);
+    if (!fs.existsSync(vp)) continue;
+    const raw = yaml.load(fs.readFileSync(vp, "utf8"));
+    vocabulary[kind] = {};
+    for (const v of raw?.values ?? []) {
+      if (!v?.code) continue;
+      vocabulary[kind][v.code] = {
+        name: v.name_ru ?? v.code,
+        description: v.description_ru ?? null,
+      };
+    }
+  }
+  writeJson("vocabulary.json", vocabulary);
+
+  // Статистика — для /stats без серверного SQL.
+  const filmsWithDirector = films.filter((f) => (f.director ?? []).length > 0).length;
+  const filmsWithPoster = films.filter((f) => f.poster_commons).length;
+  const filmsWithYoutube = films.filter((f) => f.external_ids?.youtube).length;
+  const filmsWithImdb = films.filter((f) => f.external_ids?.imdb).length;
+  const peopleWithImage = people.filter((p) => p.image_commons).length;
+  const peopleWithBirth = people.filter((p) => p.birth).length;
+
+  const byCountry = new Map();
+  for (const f of films) for (const c of f.country ?? []) byCountry.set(c, (byCountry.get(c) ?? 0) + 1);
+  const byDecade = new Map();
+  for (const f of films) {
+    if (f.year == null) continue;
+    const d = Math.floor(f.year / 10) * 10;
+    byDecade.set(d, (byDecade.get(d) ?? 0) + 1);
+  }
+  const byRole = new Map();
+  for (const p of people) for (const r of p.roles ?? []) byRole.set(r, (byRole.get(r) ?? 0) + 1);
+
+  const directorCount = new Map();
+  for (const f of films) for (const d of f.director ?? []) directorCount.set(d, (directorCount.get(d) ?? 0) + 1);
+  const peopleById = new Map(people.map((p) => [p.id, p]));
+  const topDirectors = [...directorCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, c]) => {
+      const p = peopleById.get(id);
+      return { id, name_ru: p?.name_ru ?? id, image_commons: p?.image_commons, film_count: c };
+    });
+  const topStudios = [...studioFilmCount.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id, c]) => {
+      const s = studios.find((x) => x.id === id);
+      return { id, name_ru: s?.name_ru ?? id, count: c };
+    });
+
+  writeJson("stats.json", {
+    totals: {
+      films: films.length,
+      people: people.length,
+      studios: studios.length,
+      topics: topics.length,
+      refs: references.length,
+    },
+    coverage: {
+      films_with_director: filmsWithDirector,
+      films_with_poster: filmsWithPoster,
+      films_with_youtube: filmsWithYoutube,
+      films_with_imdb: filmsWithImdb,
+      people_with_image: peopleWithImage,
+      people_with_birth: peopleWithBirth,
+    },
+    by_country: [...byCountry.entries()].map(([code, count]) => ({ code, count })),
+    by_decade: [...byDecade.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([decade, count]) => ({ decade, count })),
+    by_role: [...byRole.entries()].map(([code, count]) => ({ code, count })),
+    top_studios: topStudios,
+    top_directors: topDirectors,
+  });
+
+  console.log(
+    `[build-db] public/data/ written: films-index, people-index, studios, topics, motifs, refs, vocabulary, stats`,
+  );
 }
 
 main();
