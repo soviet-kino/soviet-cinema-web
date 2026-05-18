@@ -1,0 +1,50 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Один деплой на main — без параллельных.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout web
+        uses: actions/checkout@v4
+
+      - name: Checkout soviet-cinema-data (main)
+        uses: actions/checkout@v4
+        with:
+          repository: soviet-kino/soviet-cinema-data
+          ref: main
+          path: data-source
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm install --no-audit --no-fund
+
+      - name: Build static site
+        env:
+          SBC_DATA_DIR: ${{ github.workspace }}/data-source
+          NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://soviet-cinema.pages.dev' }}
+        run: npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy out --project-name=soviet-cinema --branch=main
