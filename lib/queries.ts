@@ -821,6 +821,44 @@ export function vocabName(kind: VocabKind, code: string): string {
 
 // ---- FTS-поиск -----------------------------------------------------------
 
+export interface SearchPerson {
+  id: string;
+  name_ru: string;
+  roles: string[];
+  image_commons?: string;
+}
+
+export function searchPeople(q: string, limit = 20): SearchPerson[] {
+  const trimmed = q.trim();
+  if (trimmed.length < 2) return [];
+  const safe = trimmed.replace(/["()\-]/g, " ").replace(/\s+/g, " ").trim();
+  if (!safe) return [];
+  const ftsQuery = safe
+    .split(" ")
+    .map((w) => `${w}*`)
+    .join(" ");
+  const conn = db();
+  const rows = conn
+    .prepare(
+      `SELECT p.id, p.data
+         FROM people_fts fts
+         JOIN people p ON p.id = fts.id
+        WHERE people_fts MATCH ?
+        ORDER BY p.name_ru COLLATE NOCASE
+        LIMIT ?`,
+    )
+    .all(ftsQuery, limit) as { id: string; data: string }[];
+  return rows.map((r) => {
+    const p = JSON.parse(r.data) as Person;
+    return {
+      id: p.id,
+      name_ru: p.name_ru,
+      roles: p.roles ?? [],
+      image_commons: p.image_commons,
+    };
+  });
+}
+
 export interface SearchResult {
   id: string;
   title_ru: string;
