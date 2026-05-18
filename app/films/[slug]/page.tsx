@@ -5,6 +5,7 @@ import { Abbr } from "@/lib/abbr";
 import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
   allFilmIds,
+  filmsAdaptedFromAuthor,
   getFilm,
   listFilms,
   literarySourceOf,
@@ -60,6 +61,12 @@ export default async function FilmPage({ params }: PageProps) {
     ? listFilms({ director: directorSlug, limit: 11 })
         .filter((f) => f.id !== slug)
         .slice(0, 10)
+    : [];
+  // Другие экранизации первого автора литературного источника, если он есть.
+  // Например, на странице «Сталкера» — другие фильмы по Стругацким.
+  const litAuthorSlug = litSource?.authors?.[0];
+  const otherAdaptations = litAuthorSlug
+    ? filmsAdaptedFromAuthor(litAuthorSlug).filter((a) => a.film_id !== slug)
     : [];
 
   return (
@@ -222,6 +229,34 @@ export default async function FilmPage({ params }: PageProps) {
               className="titre hover:text-sepia"
             >
               Все фильмы режиссёра →
+            </Link>
+          </p>
+        </Section>
+      )}
+
+      {otherAdaptations.length > 0 && litAuthorSlug && (
+        <Section
+          title={`Другие экранизации — ${peopleMap.get(litAuthorSlug)?.name_ru ?? litAuthorSlug}`}
+        >
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+            {otherAdaptations.map((a) => (
+              <li key={`${a.film_id}-${a.source_title}`}>
+                <Link href={`/films/${a.film_id}`} className="hover:underline">
+                  <span className="text-light/60 mr-2">{a.year}</span>
+                  <span className="font-medium">{a.title_ru}</span>
+                </Link>
+                <span className="text-sm text-light/50 ml-2">
+                  по «{a.source_title}»
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2">
+            <Link
+              href={`/people/${litAuthorSlug}`}
+              className="titre hover:text-sepia"
+            >
+              Страница автора →
             </Link>
           </p>
         </Section>
