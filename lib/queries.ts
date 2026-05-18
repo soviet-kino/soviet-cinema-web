@@ -238,6 +238,43 @@ export interface PersonListItem {
   image_commons?: string;
 }
 
+/** Топ-N режиссёров по количеству фильмов. Для главной. */
+export interface TopDirector {
+  id: string;
+  name_ru: string;
+  image_commons?: string;
+  film_count: number;
+}
+
+export function topDirectors(limit = 12): TopDirector[] {
+  const conn = db();
+  const rows = conn
+    .prepare(
+      `SELECT je.value AS director, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.director')) je
+        GROUP BY je.value
+        ORDER BY c DESC
+        LIMIT ?`,
+    )
+    .all(limit) as { director: string; c: number }[];
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.director);
+  const placeholders = ids.map(() => "?").join(",");
+  const people = conn
+    .prepare(`SELECT id, data FROM people WHERE id IN (${placeholders})`)
+    .all(...ids) as { id: string; data: string }[];
+  const map = new Map(people.map((p) => [p.id, JSON.parse(p.data) as Person]));
+  return rows.map((r) => {
+    const p = map.get(r.director);
+    return {
+      id: r.director,
+      name_ru: p?.name_ru ?? r.director,
+      image_commons: p?.image_commons,
+      film_count: r.c,
+    };
+  });
+}
+
 export function availableRoles(): { code: string; count: number }[] {
   const conn = db();
   const allCodes = (

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
-import { countFilms, listFilms, listTopics } from "@/lib/queries";
+import { Avatar } from "@/lib/media-components";
+import { countFilms, listFilms, listTopics, topDirectors } from "@/lib/queries";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
 
@@ -11,6 +12,7 @@ export default function HomePage() {
   const total = countFilms();
   const recent = listFilms({ limit: 18 });
   const topics = listTopics();
+  const directors = topDirectors(12);
 
   return (
     <article className="space-y-16">
@@ -94,6 +96,42 @@ export default function HomePage() {
                   <p className="text-light/70 text-sm mt-2 line-clamp-3">
                     {t.description_ru}
                   </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ИЗВЕСТНЫЕ РЕЖИССЁРЫ */}
+      {directors.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">
+              Самые снимающие режиссёры
+            </h2>
+            <Link href="/people?role=director" className="titre hover:text-sepia">
+              Все режиссёры →
+            </Link>
+          </header>
+          <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            {directors.map((d) => (
+              <li key={d.id}>
+                <Link
+                  href={`/people/${d.id}`}
+                  className="block frame p-3 text-center hover:border-sepia/40 transition-colors"
+                >
+                  <div className="flex justify-center mb-2">
+                    <Avatar
+                      filename={d.image_commons}
+                      alt={`Портрет: ${d.name_ru}`}
+                      size={64}
+                    />
+                  </div>
+                  <p className="text-light text-sm font-medium leading-tight">
+                    {d.name_ru}
+                  </p>
+                  <p className="titre mt-1">{d.film_count} фильмов</p>
                 </Link>
               </li>
             ))}
