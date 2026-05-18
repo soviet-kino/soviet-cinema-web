@@ -13,6 +13,7 @@ const NAV = [
   { href: "/people", label: "Люди" },
   { href: "/studios", label: "Студии" },
   { href: "/topics", label: "Темы" },
+  { href: "/motifs", label: "Мотивы" },
   { href: "/essays", label: "Разборы" },
 ];
 
