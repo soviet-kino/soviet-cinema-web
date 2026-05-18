@@ -248,6 +248,7 @@ function main() {
     name_original: p.name_original,
     name_translit: p.name_translit,
     roles: p.roles ?? [],
+    nationality: p.nationality ?? [],
     birth: p.birth,
     death: p.death,
     image_commons: p.image_commons,
