@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { listMotifs } from "@/lib/queries";
 
 export const dynamic = "force-static";
@@ -9,6 +10,7 @@ export default function MotifsPage() {
   const motifs = listMotifs();
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "мотивы" }]} />
       <header className="space-y-2">
         <p className="titre">мотивы</p>
         <h1 className="font-display text-3xl text-light">Мотивы и приёмы</h1>

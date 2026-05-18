@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { listStudios } from "@/lib/queries";
 
 export const dynamic = "force-static";
@@ -15,6 +16,7 @@ export default function StudiosPage() {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "студии" }]} />
       <header className="space-y-2">
         <p className="titre">студии</p>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">

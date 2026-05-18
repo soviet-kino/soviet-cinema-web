@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import { availableRoles, listPeople } from "@/lib/queries";
 
@@ -19,6 +20,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "люди" }]} />
       <header className="space-y-2">
         <p className="titre">галерея</p>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import { getDbStats } from "@/lib/queries";
 
@@ -15,6 +16,7 @@ export default function StatsPage() {
 
   return (
     <article className="space-y-10">
+      <Breadcrumbs items={[{ label: "статистика" }]} />
       <header className="space-y-2">
         <p className="titre">статистика</p>
         <h1 className="font-display text-3xl text-light">Здоровье базы</h1>

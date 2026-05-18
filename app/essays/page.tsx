@@ -1,8 +1,11 @@
+import { Breadcrumbs } from "@/lib/breadcrumbs";
+
 export const dynamic = "force-static";
 
 export default function EssaysPage() {
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "разборы" }]} />
       <header className="space-y-2">
         <p className="titre">лонгриды</p>
         <h1 className="font-display text-3xl text-light">Разборы</h1>
