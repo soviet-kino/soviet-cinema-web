@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import {
   allStudioIds,
   getStudio,
@@ -31,6 +32,7 @@ export default async function StudioPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
+      <Breadcrumbs items={[{ label: "студии", href: "/studios" }, { label: studio.name_ru }]} />
       <header className="space-y-2">
         <p className="titre">студия</p>
         <h1 className="font-display text-3xl text-light">{studio.name_ru}</h1>

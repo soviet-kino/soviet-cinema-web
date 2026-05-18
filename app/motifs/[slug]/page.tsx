@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { allMotifIds, getMotif, topicsWithMotif } from "@/lib/queries";
 
 interface PageProps {
@@ -27,6 +28,7 @@ export default async function MotifPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
+      <Breadcrumbs items={[{ label: "мотивы", href: "/motifs" }, { label: motif.name_ru }]} />
       <header className="space-y-2">
         <p className="titre">мотив</p>
         <h1 className="font-display text-3xl text-light">{motif.name_ru}</h1>

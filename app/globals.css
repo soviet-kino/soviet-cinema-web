@@ -2,10 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Webfonts через Google Fonts. Old Standard TT — старопечатный seriff
-   в стилистике дореволюционной русской типографики и титров немого
-   кино. JetBrains Mono — для подписей-«титров» и slug-ов. */
-@import url("https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400&display=swap");
+/* Webfonts через Google Fonts. Cormorant Garamond — старо-печатный
+   антиква в стилистике дореволюционных русских афиш и обложек
+   1900-х–1920-х (близок к шрифту «Гильдия»). Полная кириллица,
+   open source. JetBrains Mono — для «титров» и slug-ов. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,700;1,400;1,500&family=JetBrains+Mono:wght@400&display=swap");
 
 :root {
   color-scheme: dark;
