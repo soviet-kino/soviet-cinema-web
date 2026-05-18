@@ -11,6 +11,9 @@ import {
 // На проде поменяем на собственный домен через env.
 const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://soviet-kino.github.io";
 
+// Для static export sitemap нужно явно объявить статическим.
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const staticUrls = [

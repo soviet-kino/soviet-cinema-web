@@ -33,9 +33,40 @@ scripts/         — build-db.mjs (YAML → SQLite)
 
 ## Деплой
 
-Целевые платформы — Cloudflare Pages и Vercel (бесплатные тарифы).
-Данные собираются в `data/soviet-cinema.sqlite` и попадают в билд.
-Внешний рантайм-БД не требуется.
+Сайт собирается через `output: 'export'` — это полностью статический
+HTML/JS/CSS, без серверного рантайма. Подходит для Cloudflare Pages
+(бесплатно, без лимитов на трафик и запросы).
+
+### Архитектура билда
+
+- `npm run build:db` строит **и** `data/soviet-cinema.sqlite`,
+  **и** JSON-индексы в `public/data/` (films-index, people-index,
+  studios, topics, motifs, refs, vocabulary, stats).
+- `next build` использует SQLite для пре-рендера detail-страниц
+  (`/films/[slug]`, `/people/[slug]` и т. д.) через
+  `generateStaticParams`.
+- List-страницы (`/films`, `/people`, `/search`, `/random`, `/stats`)
+  — client components: на клиенте грузят `/data/*.json` и фильтруют
+  в памяти.
+- Результат — папка `out/` с готовым статическим сайтом.
+
+### Cloudflare Pages — однократная настройка
+
+1. Создать API-токен в Cloudflare Dashboard:
+   - Profile → API Tokens → Create Token → "Edit Cloudflare Workers"
+     (включает Pages:Edit).
+2. Получить Account ID: dashboard → правая колонка на любой странице.
+3. В GitHub репозитории `soviet-cinema-web` добавить secrets:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+4. Опционально — переменная `SITE_URL` (vars) с собственным доменом
+   для корректного `sitemap.xml`.
+
+После этого push в `main` автоматически:
+- собирает сайт (`.github/workflows/deploy.yml`),
+- пушит `out/` в Cloudflare Pages через `wrangler pages deploy`,
+- проект на CFP создаётся при первом деплое; имя — `soviet-cinema`
+  (меняется в deploy.yml).
 
 ## Лицензия
 
