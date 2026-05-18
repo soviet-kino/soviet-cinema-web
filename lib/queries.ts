@@ -819,6 +819,103 @@ export function vocabName(kind: VocabKind, code: string): string {
   return vocabEntry(kind, code)?.name ?? code;
 }
 
+// ---- stats ---------------------------------------------------------------
+
+export interface DbStats {
+  totals: { films: number; people: number; studios: number; topics: number; refs: number };
+  coverage: {
+    films_with_director: number;
+    films_with_poster: number;
+    films_with_youtube: number;
+    films_with_imdb: number;
+    people_with_image: number;
+    people_with_birth: number;
+  };
+  by_country: { code: string; count: number }[];
+  by_decade: { decade: number; count: number }[];
+  by_role: { code: string; count: number }[];
+  top_studios: { id: string; name_ru: string; count: number }[];
+  top_directors: TopDirector[];
+}
+
+export function getDbStats(): DbStats {
+  const conn = db();
+  const num = (q: string, ...params: unknown[]) =>
+    (conn.prepare(q).get(...params) as { c: number }).c;
+  const films = num("SELECT COUNT(*) AS c FROM films");
+  const people = num("SELECT COUNT(*) AS c FROM people");
+  const studios = num("SELECT COUNT(*) AS c FROM studios");
+  const topics = num("SELECT COUNT(*) AS c FROM topics");
+  const refs = num("SELECT COUNT(*) AS c FROM refs");
+
+  const filmsWithDirector = num(
+    `SELECT COUNT(*) AS c FROM films
+     WHERE json_array_length(coalesce(json_extract(data, '$.director'), '[]')) > 0`,
+  );
+  const filmsWithPoster = num(
+    `SELECT COUNT(*) AS c FROM films
+     WHERE json_extract(data, '$.poster_commons') IS NOT NULL`,
+  );
+  const filmsWithYoutube = num(
+    `SELECT COUNT(*) AS c FROM films
+     WHERE json_extract(data, '$.external_ids.youtube') IS NOT NULL`,
+  );
+  const filmsWithImdb = num(
+    `SELECT COUNT(*) AS c FROM films
+     WHERE json_extract(data, '$.external_ids.imdb') IS NOT NULL`,
+  );
+  const peopleWithImage = num(
+    `SELECT COUNT(*) AS c FROM people
+     WHERE json_extract(data, '$.image_commons') IS NOT NULL`,
+  );
+  const peopleWithBirth = num(
+    `SELECT COUNT(*) AS c FROM people
+     WHERE json_extract(data, '$.birth') IS NOT NULL`,
+  );
+
+  const byCountry = availableCountries().filter((c) => c.count > 0);
+
+  // Декады из year (например, 1960 для 1965).
+  const decadeRows = conn
+    .prepare(
+      `SELECT (year / 10) * 10 AS decade, COUNT(*) AS c FROM films
+        WHERE year IS NOT NULL GROUP BY decade ORDER BY decade`,
+    )
+    .all() as { decade: number; c: number }[];
+
+  const byRole = availableRoles().filter((r) => r.count > 0);
+
+  // Топ-10 студий по фильмам.
+  const topStudios = conn
+    .prepare(
+      `SELECT je.value AS sid, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.studio')) je
+        GROUP BY je.value ORDER BY c DESC LIMIT 10`,
+    )
+    .all() as { sid: string; c: number }[];
+  const studioInfos = topStudios.map((r) => {
+    const s = getStudio(r.sid);
+    return { id: r.sid, name_ru: s?.name_ru ?? r.sid, count: r.c };
+  });
+
+  return {
+    totals: { films, people, studios, topics, refs },
+    coverage: {
+      films_with_director: filmsWithDirector,
+      films_with_poster: filmsWithPoster,
+      films_with_youtube: filmsWithYoutube,
+      films_with_imdb: filmsWithImdb,
+      people_with_image: peopleWithImage,
+      people_with_birth: peopleWithBirth,
+    },
+    by_country: byCountry,
+    by_decade: decadeRows.map((r) => ({ decade: r.decade, count: r.c })),
+    by_role: byRole,
+    top_studios: studioInfos,
+    top_directors: topDirectors(10),
+  };
+}
+
 // ---- FTS-поиск -----------------------------------------------------------
 
 export interface SearchPerson {
