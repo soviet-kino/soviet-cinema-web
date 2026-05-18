@@ -276,7 +276,45 @@ function main() {
     })),
   );
 
-  writeJson("topics.json", topics);
+  // Темы: резолвим список фильмов для каждой темы заранее.
+  // Источники членства фильма в теме:
+  //   1) явное Film.topics[]
+  //   2) Topic.filter (director / screenwriter / book_author / year / country)
+  // book_author резолвится через references.target.authors.
+  const filmsByAuthor = new Map();
+  for (const r of references) {
+    if (r.target?.type !== "book") continue;
+    for (const a of r.target.authors ?? []) {
+      let s = filmsByAuthor.get(a);
+      if (!s) { s = new Set(); filmsByAuthor.set(a, s); }
+      s.add(r.source_film);
+    }
+  }
+  const topicsWithFilms = topics.map((t) => {
+    const filter = t.filter;
+    const filmsFromRefs = filter?.book_author ? (filmsByAuthor.get(filter.book_author) ?? new Set()) : null;
+    const out = [];
+    const seen = new Set();
+    for (const f of films) {
+      let m = false;
+      if (f.topics?.includes(t.id)) m = true;
+      if (!m && filter) {
+        const c1 = filter.year_from == null || (f.year != null && f.year >= filter.year_from);
+        const c2 = filter.year_to == null || (f.year != null && f.year <= filter.year_to);
+        const c3 = !filter.director || (f.director ?? []).includes(filter.director);
+        const c4 = !filter.screenwriter || (f.screenwriter ?? []).includes(filter.screenwriter);
+        const c5 = !filter.country || (f.country ?? []).includes(filter.country);
+        const c6 = !filter.book_author || filmsFromRefs?.has(f.id);
+        const anySet =
+          filter.year_from != null || filter.year_to != null ||
+          filter.director || filter.screenwriter || filter.country || filter.book_author;
+        if (c1 && c2 && c3 && c4 && c5 && c6 && anySet) m = true;
+      }
+      if (m && !seen.has(f.id)) { seen.add(f.id); out.push(f.id); }
+    }
+    return { ...t, films: out };
+  });
+  writeJson("topics.json", topicsWithFilms);
   writeJson("motifs.json", motifs);
   writeJson("refs.json", references);
 
