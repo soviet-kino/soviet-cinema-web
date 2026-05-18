@@ -25,6 +25,7 @@ export interface PersonIndexEntry {
   name_original?: string;
   name_translit?: string;
   roles: string[];
+  nationality: string[];
   birth?: string;
   death?: string;
   image_commons?: string;
