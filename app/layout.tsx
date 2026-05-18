@@ -56,19 +56,33 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main className="mx-auto max-w-6xl px-6 py-12">{children}</main>
 
         <footer className="border-t border-light/10 mt-24 py-8 text-xs">
-          <div className="mx-auto max-w-6xl px-6 grid sm:grid-cols-2 gap-4 text-light/50">
-            <p>
-              Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры — Wikimedia Commons и TMDB, по лицензиям правообладателей.
-            </p>
-            <p className="sm:text-right">
-              Исходники:{" "}
-              <a
-                className="underline decoration-dotted underline-offset-2"
-                href="https://github.com/soviet-kino"
-              >
-                github.com/soviet-kino
+          <div className="mx-auto max-w-6xl px-6 space-y-3 text-light/50">
+            <nav className="flex flex-wrap gap-4 text-sepia_dim">
+              <a href="/random" className="hover:text-sepia">
+                🎲 Случайный фильм
               </a>
-            </p>
+              <a href="/stats" className="hover:text-sepia">
+                📊 Статистика базы
+              </a>
+              <a href="/search" className="hover:text-sepia">
+                🔍 Поиск
+              </a>
+            </nav>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <p>
+                Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры —
+                Wikimedia Commons и TMDB, по лицензиям правообладателей.
+              </p>
+              <p className="sm:text-right">
+                Исходники:{" "}
+                <a
+                  className="underline decoration-dotted underline-offset-2"
+                  href="https://github.com/soviet-kino"
+                >
+                  github.com/soviet-kino
+                </a>
+              </p>
+            </div>
           </div>
         </footer>
       </body>
