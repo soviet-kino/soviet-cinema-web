@@ -1,18 +1,32 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-import { Abbr } from "@/lib/abbr";
 import { Breadcrumbs } from "@/lib/breadcrumbs";
+import { ClientAbbr } from "@/lib/client-abbr";
+import { loadStats, type StatsData } from "@/lib/client-data";
 import { Avatar } from "@/lib/media-components";
-import { getDbStats } from "@/lib/queries";
-
-export const dynamic = "force-static";
-
-export const metadata = {
-  title: "Статистика базы — Soviet Bloc Cinema",
-};
 
 export default function StatsPage() {
-  const s = getDbStats();
+  const [s, setS] = useState<StatsData | null>(null);
+
+  useEffect(() => {
+    loadStats().then(setS);
+  }, []);
+
+  if (!s) {
+    return (
+      <article className="space-y-6">
+        <Breadcrumbs items={[{ label: "статистика" }]} />
+        <header className="space-y-2">
+          <p className="titre">статистика</p>
+          <h1 className="font-display text-3xl text-light">Здоровье базы</h1>
+        </header>
+        <p className="titre text-light/40">загрузка…</p>
+      </article>
+    );
+  }
 
   return (
     <article className="space-y-10">
@@ -43,36 +57,12 @@ export default function StatsPage() {
           Полнота заполнения
         </h2>
         <ul className="space-y-2">
-          <Bar
-            label="Фильмов с режиссёром"
-            num={s.coverage.films_with_director}
-            total={s.totals.films}
-          />
-          <Bar
-            label="Фильмов с YouTube ID"
-            num={s.coverage.films_with_youtube}
-            total={s.totals.films}
-          />
-          <Bar
-            label="Фильмов с IMDb ID"
-            num={s.coverage.films_with_imdb}
-            total={s.totals.films}
-          />
-          <Bar
-            label="Фильмов с постером"
-            num={s.coverage.films_with_poster}
-            total={s.totals.films}
-          />
-          <Bar
-            label="Персон с фото"
-            num={s.coverage.people_with_image}
-            total={s.totals.people}
-          />
-          <Bar
-            label="Персон с датой рождения"
-            num={s.coverage.people_with_birth}
-            total={s.totals.people}
-          />
+          <Bar label="Фильмов с режиссёром" num={s.coverage.films_with_director} total={s.totals.films} />
+          <Bar label="Фильмов с YouTube ID" num={s.coverage.films_with_youtube} total={s.totals.films} />
+          <Bar label="Фильмов с IMDb ID" num={s.coverage.films_with_imdb} total={s.totals.films} />
+          <Bar label="Фильмов с постером" num={s.coverage.films_with_poster} total={s.totals.films} />
+          <Bar label="Персон с фото" num={s.coverage.people_with_image} total={s.totals.people} />
+          <Bar label="Персон с датой рождения" num={s.coverage.people_with_birth} total={s.totals.people} />
         </ul>
       </section>
 
@@ -87,7 +77,7 @@ export default function StatsPage() {
                 href={{ pathname: "/films", query: { country: c.code, year: "all" } }}
                 className="hover:underline flex items-baseline gap-2"
               >
-                <Abbr kind="country" code={c.code} display="name" />
+                <ClientAbbr kind="countries" code={c.code} display="name" />
                 <span className="text-light/40">{c.count}</span>
               </Link>
             </li>
@@ -122,7 +112,7 @@ export default function StatsPage() {
                 href={{ pathname: "/people", query: { role: r.code } }}
                 className="hover:underline flex items-baseline gap-2"
               >
-                <Abbr kind="role" code={r.code} display="name" />
+                <ClientAbbr kind="roles" code={r.code} display="name" />
                 <span className="text-light/40">{r.count}</span>
               </Link>
             </li>
@@ -218,10 +208,7 @@ function Bar({
         </span>
       </div>
       <div className="h-1 bg-light/10 rounded overflow-hidden">
-        <div
-          className="h-full bg-sepia/60"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full bg-sepia/60" style={{ width: `${pct}%` }} />
       </div>
     </li>
   );
