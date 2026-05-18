@@ -69,6 +69,12 @@ function main() {
       title_original,
       title_en
     );
+    CREATE VIRTUAL TABLE people_fts USING fts5(
+      id UNINDEXED,
+      name_ru,
+      name_original,
+      name_translit
+    );
     CREATE TABLE vocabulary (
       kind TEXT,
       code TEXT,
@@ -102,6 +108,9 @@ function main() {
   );
   const insPerson = db.prepare(
     "INSERT INTO people (id, name_ru, data) VALUES (?, ?, ?)",
+  );
+  const insPersonFts = db.prepare(
+    "INSERT INTO people_fts (id, name_ru, name_original, name_translit) VALUES (?, ?, ?, ?)",
   );
   const insStudio = db.prepare(
     "INSERT INTO studios (id, name_ru, country, data) VALUES (?, ?, ?, ?)",
@@ -151,6 +160,12 @@ function main() {
     }
     for (const p of people) {
       insPerson.run(p.id, p.name_ru ?? null, JSON.stringify(p));
+      insPersonFts.run(
+        p.id,
+        p.name_ru ?? "",
+        p.name_original ?? "",
+        p.name_translit ?? "",
+      );
     }
     for (const s of studios) {
       insStudio.run(
