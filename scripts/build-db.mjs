@@ -39,6 +39,7 @@ function main() {
   const studios = readYamlDir(path.join(DATA_ROOT, "studios"));
   const topics = readYamlDir(path.join(DATA_ROOT, "topics"));
   const references = readYamlDir(path.join(DATA_ROOT, "references"));
+  const motifs = readYamlDir(path.join(DATA_ROOT, "motifs"));
 
   const db = new Database(OUT);
   db.pragma("journal_mode = WAL");
@@ -86,6 +87,11 @@ function main() {
       kind TEXT,
       data JSON
     );
+    CREATE TABLE motifs (
+      id TEXT PRIMARY KEY,
+      name_ru TEXT,
+      data JSON
+    );
   `);
 
   const insFilm = db.prepare(
@@ -108,6 +114,9 @@ function main() {
   );
   const insRef = db.prepare(
     "INSERT INTO refs (id, source_film, kind, data) VALUES (?, ?, ?, ?)",
+  );
+  const insMotif = db.prepare(
+    "INSERT INTO motifs (id, name_ru, data) VALUES (?, ?, ?)",
   );
 
   // Перечень соответствует vocabularies/ в soviet-cinema-data.
@@ -161,6 +170,9 @@ function main() {
         r.kind ?? null,
         JSON.stringify(r),
       );
+    }
+    for (const m of motifs) {
+      insMotif.run(m.id, m.name_ru ?? null, JSON.stringify(m));
     }
     for (const [kind, file] of Object.entries(vocabFiles)) {
       const vp = path.join(DATA_ROOT, "vocabularies", file);

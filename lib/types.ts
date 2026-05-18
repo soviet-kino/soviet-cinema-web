@@ -79,6 +79,14 @@ export interface Person {
   external_ids?: ExternalIds;
 }
 
+export interface Motif {
+  id: string;
+  name_ru: string;
+  description_ru: string;
+  category?: string[];
+  sources?: string[];
+}
+
 export interface Studio {
   id: string;
   name_ru: string;

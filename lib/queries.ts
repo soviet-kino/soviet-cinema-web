@@ -4,7 +4,7 @@
 import "server-only";
 
 import { db } from "./db";
-import type { Film, Person, Studio, Topic } from "./types";
+import type { Film, Motif, Person, Studio, Topic } from "./types";
 
 interface FilmRow {
   id: string;
@@ -733,6 +733,45 @@ export function filmsByTopic(topicId: string): FilmListItem[] {
     }
   }
   return out.sort((a, b) => b.year - a.year || a.title_ru.localeCompare(b.title_ru, "ru"));
+}
+
+// ---- motifs --------------------------------------------------------------
+
+export function listMotifs(): Motif[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT data FROM motifs ORDER BY name_ru COLLATE NOCASE")
+    .all() as { data: string }[];
+  return rows.map((r) => JSON.parse(r.data) as Motif);
+}
+
+export function getMotif(id: string): Motif | null {
+  const conn = db();
+  const row = conn
+    .prepare("SELECT data FROM motifs WHERE id = ?")
+    .get(id) as { data: string } | undefined;
+  if (!row) return null;
+  return JSON.parse(row.data) as Motif;
+}
+
+export function allMotifIds(): string[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id FROM motifs").all() as { id: string }[];
+  return rows.map((r) => r.id);
+}
+
+/** Темы, у которых в related_motifs указан этот мотив. */
+export function topicsWithMotif(motifId: string): Topic[] {
+  const conn = db();
+  const rows = conn
+    .prepare(
+      `SELECT data FROM topics WHERE id IN (
+         SELECT topics.id FROM topics, json_each(json_extract(topics.data, '$.related_motifs')) je
+         WHERE je.value = ?
+       )`,
+    )
+    .all(motifId) as { data: string }[];
+  return rows.map((r) => JSON.parse(r.data) as Topic);
 }
 
 // ---- vocabulary (страны, республики, жанры, языки и т.д.) -----------------
