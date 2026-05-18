@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import { searchFilms, searchPeople } from "@/lib/queries";
 
@@ -18,6 +19,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "поиск" }]} />
       <header className="space-y-2">
         <p className="titre">поиск</p>
         <h1 className="font-display text-3xl text-light">

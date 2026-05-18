@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import {
   availableCountries,
   availableGenres,
@@ -53,6 +54,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "фильмы" }]} />
       <header className="space-y-2">
         <p className="titre">каталог</p>
         <div className="flex items-baseline justify-between gap-4 flex-wrap">

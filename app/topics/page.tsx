@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 
 import { listTopics } from "@/lib/queries";
 
@@ -8,6 +9,7 @@ export default function TopicsPage() {
   const topics = listTopics();
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: "темы" }]} />
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold">Темы</h1>
         <p className="text-light/70">
