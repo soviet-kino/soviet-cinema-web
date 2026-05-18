@@ -40,6 +40,9 @@ data/*.sqlite-journal
 data/*.sqlite-wal
 data/*.sqlite-shm
 
+# JSON-индексы для клиентских компонентов (генерируются build-db.mjs)
+public/data/
+
 # IDE
 .vscode/
 .idea/
