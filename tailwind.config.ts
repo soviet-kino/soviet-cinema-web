@@ -5,11 +5,23 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        // «Old Standard TT» — старопечатный seriff, восстанавливающий
-        // дореволюционную русскую типографику и стиль ранних титров
-        // немого кино. С полной кириллицей.
-        serif: ['"Old Standard TT"', "Georgia", "Times New Roman", "serif"],
-        display: ['"Old Standard TT"', "Georgia", "serif"],
+        // «Cormorant Garamond» — open-source старо-печатный антиква в
+        // стилистике гильдийных русских афиш и обложек книг 1900-х —
+        // 1920-х. Полная кириллица, бесплатно через Google Fonts.
+        // Старый Old Standard TT остаётся как фолбэк.
+        serif: [
+          '"Cormorant Garamond"',
+          '"Old Standard TT"',
+          "Georgia",
+          "Times New Roman",
+          "serif",
+        ],
+        display: [
+          '"Cormorant Garamond"',
+          '"Old Standard TT"',
+          "Georgia",
+          "serif",
+        ],
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       colors: {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import {
   allPersonIds,
@@ -42,6 +43,7 @@ export default async function PersonPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
+      <Breadcrumbs items={[{ label: "люди", href: "/people" }, { label: person.name_ru }]} />
       <header className="flex items-start gap-6">
         <div className="shrink-0">
           <Avatar

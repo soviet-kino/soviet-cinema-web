@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { allTopicIds, filmsByTopic, getTopic } from "@/lib/queries";
 
 interface PageProps {
@@ -30,6 +31,7 @@ export default async function TopicPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
+      <Breadcrumbs items={[{ label: "темы", href: "/topics" }, { label: topic.name_ru }]} />
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold">{topic.name_ru}</h1>
         <p className="text-lg text-light/80">{topic.description_ru}</p>

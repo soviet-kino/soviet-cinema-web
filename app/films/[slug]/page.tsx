@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
+import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
   allFilmIds,
@@ -71,6 +72,7 @@ export default async function FilmPage({ params }: PageProps) {
 
   return (
     <article className="space-y-8">
+      <Breadcrumbs items={[{ label: "фильмы", href: "/films" }, { label: film.title_ru }]} />
       <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6 items-start">
         <aside className="sm:row-span-2">
           <Poster filename={film.poster_commons} alt={`Постер фильма «${film.title_ru}»`} />
