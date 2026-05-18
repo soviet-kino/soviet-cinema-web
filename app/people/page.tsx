@@ -211,59 +211,96 @@ function PeopleContent() {
 
       <div className="space-y-3">
         {sections.map((s, i) => (
-          <details
-            key={s.id}
-            open={i === 0}
-            className="border border-light/10 rounded overflow-hidden group"
-          >
-            <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
-              <span className="font-display text-lg text-light">
-                <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">
-                  ▸
-                </span>
-                {s.title}
-              </span>
-              <span className="titre">{s.count}</span>
-            </summary>
-            <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
-              {s.items.map((p) => (
-                <li key={`${s.id}-${p.id}`}>
-                  <Link
-                    href={`/people/${p.id}`}
-                    className="frame flex items-center gap-3 p-3 hover:border-sepia/40 transition-colors"
-                  >
-                    <Avatar
-                      filename={p.image_commons}
-                      alt={`Портрет: ${p.name_ru}`}
-                      size={48}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-light font-medium leading-tight truncate">
-                        {p.name_ru}
-                      </p>
-                      {p.roles.length > 0 && (
-                        <p className="text-light/50 text-xs mt-0.5 truncate">
-                          {p.roles.map((r, i) => (
-                            <span key={r}>
-                              {i > 0 && " · "}
-                              <ClientAbbr kind="roles" code={r} display="name" />
-                            </span>
-                          ))}
-                        </p>
-                      )}
-                      <p className="titre mt-1">
-                        {dateYear(p.birth)}
-                        {p.death && <span> — {dateYear(p.death)}</span>}
-                      </p>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
+          <PeopleSection key={s.id} section={s} defaultOpen={i === 0} />
         ))}
       </div>
     </section>
+  );
+}
+
+const PAGE_SIZE = 200;
+
+function PeopleSection({
+  section,
+  defaultOpen,
+}: {
+  section: Section;
+  defaultOpen: boolean;
+}) {
+  // Ленивая монтировка: содержимое <details> рендерим только если
+  // секция когда-либо открывалась. Это ключевой фикс — иначе при
+  // первом рендере React пытается смонтировать тысячи Avatar/Link
+  // во всех секциях и страница падает с client-side exception.
+  const [open, setOpen] = useState(defaultOpen);
+  const [shown, setShown] = useState(PAGE_SIZE);
+
+  return (
+    <details
+      open={open}
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+      className="border border-light/10 rounded overflow-hidden group"
+    >
+      <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
+        <span className="font-display text-lg text-light">
+          <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">
+            ▸
+          </span>
+          {section.title}
+        </span>
+        <span className="titre">{section.count}</span>
+      </summary>
+      {open && (
+        <>
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-3">
+            {section.items.slice(0, shown).map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={`/people/${p.id}`}
+                  className="frame flex items-center gap-3 p-3 hover:border-sepia/40 transition-colors"
+                >
+                  <Avatar
+                    filename={p.image_commons}
+                    alt={`Портрет: ${p.name_ru}`}
+                    size={48}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-light font-medium leading-tight truncate">
+                      {p.name_ru}
+                    </p>
+                    {p.roles.length > 0 && (
+                      <p className="text-light/50 text-xs mt-0.5 truncate">
+                        {p.roles.map((r, i) => (
+                          <span key={r}>
+                            {i > 0 && " · "}
+                            <ClientAbbr kind="roles" code={r} display="name" />
+                          </span>
+                        ))}
+                      </p>
+                    )}
+                    <p className="titre mt-1">
+                      {dateYear(p.birth)}
+                      {p.death && <span> — {dateYear(p.death)}</span>}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {section.count > shown && (
+            <div className="px-3 pb-3">
+              <button
+                type="button"
+                onClick={() => setShown((s) => s + PAGE_SIZE)}
+                className="px-3 py-1.5 border border-light/30 rounded text-sm text-light/80 hover:border-sepia hover:text-light transition-colors"
+              >
+                Показать ещё {Math.min(PAGE_SIZE, section.count - shown)} из{" "}
+                {section.count - shown}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </details>
   );
 }
 

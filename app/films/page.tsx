@@ -345,40 +345,36 @@ function FilmsContent() {
       {coproductionGroups.length > 0 ? (
         <div className="space-y-3">
           {coproductionGroups.map((g, i) => (
-            <details key={g.key} open={i < 3} className="border border-light/10 rounded overflow-hidden group">
-              <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
-                <span className="font-display text-lg text-light">
-                  <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">▸</span>
+            <FilmsSection
+              key={g.key}
+              title={
+                <>
                   {g.label.split("+").map((c, idx) => (
                     <span key={c}>
                       {idx > 0 && " + "}
                       <ClientAbbr kind="countries" code={c} display="name" />
                     </span>
                   ))}
-                </span>
-                <span className="titre">{g.items.length}</span>
-              </summary>
-              <FilmList films={g.items} />
-            </details>
+                </>
+              }
+              items={g.items}
+              defaultOpen={i < 3}
+            />
           ))}
         </div>
       ) : groupByCountry && countrySections.length > 0 ? (
         <div className="space-y-3">
           {countrySections.map((s, i) => (
-            <details key={s.code} open={i === 0} className="border border-light/10 rounded overflow-hidden group">
-              <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
-                <span className="font-display text-lg text-light">
-                  <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">▸</span>
-                  <ClientAbbr kind="countries" code={s.code} display="name" />
-                </span>
-                <span className="titre">{s.items.length}</span>
-              </summary>
-              <FilmList films={s.items} />
-            </details>
+            <FilmsSection
+              key={s.code}
+              title={<ClientAbbr kind="countries" code={s.code} display="name" />}
+              items={s.items}
+              defaultOpen={i === 0}
+            />
           ))}
         </div>
       ) : (
-        <FilmList films={list} />
+        <FilmList films={list} maxInitial={300} />
       )}
 
       {list.length === 0 && (
@@ -391,33 +387,89 @@ function FilmsContent() {
   );
 }
 
-function FilmList({ films }: { films: FilmIndexEntry[] }) {
+const FILM_PAGE_SIZE = 300;
+
+function FilmsSection({
+  title,
+  items,
+  defaultOpen,
+}: {
+  title: React.ReactNode;
+  items: FilmIndexEntry[];
+  defaultOpen: boolean;
+}) {
+  // Ленивый рендер: пока секция не открыта, дочерний UL не монтируется.
+  // Иначе 3500 Link в секции «СССР» вешает гидрацию.
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <ul className="divide-y divide-light/10">
-      {films.map((f) => (
-        <li key={f.id} className="py-3 px-3 flex items-baseline justify-between gap-4">
-          <Link href={`/films/${f.id}`} className="hover:underline">
-            <span className="font-medium">{f.title_ru}</span>
-            {f.title_original && f.title_original !== f.title_ru && (
-              <span className="text-light/60 ml-2">«{f.title_original}»</span>
-            )}
-          </Link>
-          <span className="text-sm text-light/60 shrink-0">
-            {f.year}
-            {f.country.length > 0 && (
-              <span className="ml-2">
-                {f.country.map((c, i) => (
-                  <span key={c}>
-                    {i > 0 && ", "}
-                    <ClientAbbr kind="countries" code={c} />
-                  </span>
-                ))}
-              </span>
-            )}
+    <details
+      open={open}
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+      className="border border-light/10 rounded overflow-hidden group"
+    >
+      <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
+        <span className="font-display text-lg text-light">
+          <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">
+            ▸
           </span>
-        </li>
-      ))}
-    </ul>
+          {title}
+        </span>
+        <span className="titre">{items.length}</span>
+      </summary>
+      {open && <FilmList films={items} maxInitial={FILM_PAGE_SIZE} />}
+    </details>
+  );
+}
+
+function FilmList({
+  films,
+  maxInitial,
+}: {
+  films: FilmIndexEntry[];
+  maxInitial?: number;
+}) {
+  const [shown, setShown] = useState(maxInitial ?? films.length);
+  const visible = films.slice(0, shown);
+  return (
+    <>
+      <ul className="divide-y divide-light/10">
+        {visible.map((f) => (
+          <li key={f.id} className="py-3 px-3 flex items-baseline justify-between gap-4">
+            <Link href={`/films/${f.id}`} className="hover:underline">
+              <span className="font-medium">{f.title_ru}</span>
+              {f.title_original && f.title_original !== f.title_ru && (
+                <span className="text-light/60 ml-2">«{f.title_original}»</span>
+              )}
+            </Link>
+            <span className="text-sm text-light/60 shrink-0">
+              {f.year}
+              {f.country.length > 0 && (
+                <span className="ml-2">
+                  {f.country.map((c, i) => (
+                    <span key={c}>
+                      {i > 0 && ", "}
+                      <ClientAbbr kind="countries" code={c} />
+                    </span>
+                  ))}
+                </span>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {films.length > shown && (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => setShown((s) => s + (maxInitial ?? films.length))}
+            className="px-3 py-1.5 border border-light/30 rounded text-sm text-light/80 hover:border-sepia hover:text-light transition-colors"
+          >
+            Показать ещё {Math.min(maxInitial ?? films.length, films.length - shown)} из{" "}
+            {films.length - shown}
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
