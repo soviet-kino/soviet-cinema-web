@@ -6,49 +6,66 @@ import { Suspense, useEffect, useMemo, useState, type ComponentProps } from "rea
 
 import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { ClientAbbr } from "@/lib/client-abbr";
-import { loadFilms, type FilmIndexEntry } from "@/lib/client-data";
+import {
+  loadFilms,
+  loadTopics,
+  type FilmIndexEntry,
+  type TopicIndexEntry,
+} from "@/lib/client-data";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
+
+// Десятилетия 1910–1990 — даже пустые: чтобы показать охват эпохи целиком.
+const DECADES = [1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990];
 
 function FilmsContent() {
   const params = useSearchParams();
   const country = params.get("country")?.trim() || undefined;
   const studio = params.get("studio")?.trim() || undefined;
   const genre = params.get("genre")?.trim() || undefined;
+  const topic = params.get("topic")?.trim() || undefined;
+  const multi = params.get("multi") === "1";
+  const decadeParam = params.get("decade")?.trim();
+  const decade = decadeParam ? Number(decadeParam) : undefined;
   const yearParam = params.get("year")?.trim() || undefined;
 
   const [films, setFilms] = useState<FilmIndexEntry[] | null>(null);
+  const [topics, setTopics] = useState<TopicIndexEntry[] | null>(null);
 
   useEffect(() => {
     loadFilms().then(setFilms);
+    loadTopics().then(setTopics);
   }, []);
 
   const data = useMemo(() => {
-    if (!films) return null;
+    if (!films || !topics) return null;
 
-    // Все года, доступные для выбранной страны (если страна задана).
-    const filmsForCountry = country
-      ? films.filter((f) => f.country.includes(country))
-      : films;
-    const years = [
-      ...new Set(filmsForCountry.map((f) => f.year).filter((y): y is number => y != null)),
-    ].sort((a, b) => b - a);
+    // Базовый набор — фильмы темы, если выбрана; иначе все.
+    let base = films;
+    if (topic) {
+      const t = topics.find((x) => x.id === topic);
+      const idSet = new Set(t?.films ?? []);
+      base = films.filter((f) => idSet.has(f.id));
+    }
 
-    const hasNonYearFilter = !!(studio || genre);
-    const defaultYearForList = hasNonYearFilter ? undefined : years[0];
-    const year =
-      yearParam === "all"
-        ? undefined
-        : yearParam
-          ? Number(yearParam)
-          : defaultYearForList;
+    // Год: при выбранном decade — диапазон. При конкретном году — точный.
+    // Если ни decade, ни year не заданы — без year-фильтра (показываем
+    // всё, что доступно базе/теме/со-продукциям).
+    const yearVal =
+      yearParam === "all" ? undefined : yearParam ? Number(yearParam) : undefined;
 
-    // Фильтрация.
-    let filtered = films;
-    if (year != null) filtered = filtered.filter((f) => f.year === year);
+    let filtered = base;
+    if (multi) filtered = filtered.filter((f) => f.country.length > 1);
     if (country) filtered = filtered.filter((f) => f.country.includes(country));
+    if (decade != null) {
+      filtered = filtered.filter(
+        (f) => f.year != null && f.year >= decade && f.year <= decade + 9,
+      );
+    }
+    if (yearVal != null) filtered = filtered.filter((f) => f.year === yearVal);
     if (studio) filtered = filtered.filter((f) => f.studio.includes(studio));
     if (genre) filtered = filtered.filter((f) => f.genre.includes(genre));
+
     filtered = [...filtered].sort((a, b) => {
       const ay = a.year ?? 0;
       const by = b.year ?? 0;
@@ -56,47 +73,121 @@ function FilmsContent() {
       return a.title_ru.localeCompare(b.title_ru, "ru");
     });
 
-    // Доступные страны для текущего года (если год задан).
-    const filmsForYear = year != null ? films.filter((f) => f.year === year) : films;
-    const countryCounts = new Map<string, number>();
-    for (const f of filmsForYear) {
-      for (const c of f.country) {
-        countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1);
+    // Доступные годы в выбранном десятилетии (для подсказок чипов).
+    let yearsInDecade: number[] = [];
+    if (decade != null) {
+      const ys = new Set<number>();
+      for (const f of base) {
+        if (f.year != null && f.year >= decade && f.year <= decade + 9) ys.add(f.year);
       }
+      yearsInDecade = [...ys].sort((a, b) => b - a);
     }
-    // Полный список стран — все из vocabulary, но порядок по count.
-    // Берём union of ever-seen стран в индексе.
-    const allCountriesSet = new Set<string>();
-    for (const f of films) for (const c of f.country) allCountriesSet.add(c);
-    const countries = [...allCountriesSet]
+
+    // Чипы стран — counts в текущем срезе по теме/мульти/декаде (без учёта country/year).
+    let countriesScope = base;
+    if (multi) countriesScope = countriesScope.filter((f) => f.country.length > 1);
+    if (decade != null) {
+      countriesScope = countriesScope.filter(
+        (f) => f.year != null && f.year >= decade && f.year <= decade + 9,
+      );
+    }
+    const countryCounts = new Map<string, number>();
+    for (const f of countriesScope)
+      for (const c of f.country) countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1);
+    const allCountries = new Set<string>();
+    for (const f of films) for (const c of f.country) allCountries.add(c);
+    const countries = [...allCountries]
       .map((code) => ({ code, count: countryCounts.get(code) ?? 0 }))
       .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
 
-    // Жанры в текущем срезе year+country (без учёта самого жанра).
-    const filmsForGenres = (() => {
-      let s = films;
-      if (year != null) s = s.filter((f) => f.year === year);
+    // Чипы десятилетий с counts по выбранной теме (без декады/года).
+    const decadeBase = (() => {
+      let s = base;
+      if (multi) s = s.filter((f) => f.country.length > 1);
       if (country) s = s.filter((f) => f.country.includes(country));
       return s;
     })();
-    const genreCounts = new Map<string, number>();
-    for (const f of filmsForGenres) {
-      for (const g of f.genre) genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
+    const decadeCounts = new Map<number, number>();
+    for (const f of decadeBase) {
+      if (f.year == null) continue;
+      const d = Math.floor(f.year / 10) * 10;
+      decadeCounts.set(d, (decadeCounts.get(d) ?? 0) + 1);
     }
+
+    // Чипы жанра.
+    let genreScope = filtered;
+    if (genre) {
+      genreScope = (() => {
+        let s = base;
+        if (multi) s = s.filter((f) => f.country.length > 1);
+        if (country) s = s.filter((f) => f.country.includes(country));
+        if (decade != null) s = s.filter((f) => f.year != null && f.year >= decade && f.year <= decade + 9);
+        if (yearVal != null) s = s.filter((f) => f.year === yearVal);
+        return s;
+      })();
+    }
+    const genreCounts = new Map<string, number>();
+    for (const f of genreScope) for (const g of f.genre) genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
     const genresAvail = [...genreCounts.entries()]
       .map(([code, count]) => ({ code, count }))
       .filter((g) => g.count > 0 || g.code === genre)
       .sort((a, b) => b.count - a.count);
 
+    // Темы с counts (число фильмов в каждой теме).
+    const topicCounts = topics
+      .map((t) => ({ id: t.id, name_ru: t.name_ru, count: t.films.length }))
+      .filter((t) => t.count > 0 || t.id === topic)
+      .sort((a, b) => b.count - a.count);
+
+    // Со-продукции: групп. по парам стран (для отдельного режима multi).
+    let coproductionGroups: { key: string; label: string; items: FilmIndexEntry[] }[] = [];
+    if (multi && !country && !topic) {
+      const groups = new Map<string, FilmIndexEntry[]>();
+      for (const f of filtered) {
+        const key = [...f.country].sort().join("+");
+        let arr = groups.get(key);
+        if (!arr) { arr = []; groups.set(key, arr); }
+        arr.push(f);
+      }
+      coproductionGroups = [...groups.entries()]
+        .map(([key, items]) => ({ key, label: key, items }))
+        .sort((a, b) => b.items.length - a.items.length);
+    }
+
+    // Группировка по странам — только когда нет ни country, ни decade,
+    // ни года, ни multi-режима, ни жанра. Иначе плоский список.
+    const groupByCountry =
+      !country && decade == null && yearVal == null && !multi && !genre && yearParam === "all";
+
+    let countrySections: { code: string; items: FilmIndexEntry[] }[] = [];
+    if (groupByCountry) {
+      const groups = new Map<string, FilmIndexEntry[]>();
+      for (const f of filtered) {
+        for (const c of f.country) {
+          let arr = groups.get(c);
+          if (!arr) { arr = []; groups.set(c, arr); }
+          arr.push(f);
+        }
+      }
+      countrySections = [...groups.entries()]
+        .map(([code, items]) => ({ code, items }))
+        .sort((a, b) => b.items.length - a.items.length);
+    }
+
     return {
       films: filtered,
-      year,
-      years,
-      countries,
-      genresAvail,
       total: films.length,
+      countries,
+      decadeCounts,
+      yearsInDecade,
+      genresAvail,
+      topicCounts,
+      coproductionGroups,
+      countrySections,
+      groupByCountry,
+      yearVal,
     };
-  }, [films, country, studio, genre, yearParam]);
+  }, [films, topics, country, studio, genre, topic, multi, decade, yearParam]);
 
   if (!data) {
     return (
@@ -111,7 +202,22 @@ function FilmsContent() {
     );
   }
 
-  const { films: list, year, years, countries, genresAvail, total } = data;
+  const link = (over: Partial<Params>) =>
+    hrefWith({ country, decade, year: yearParam, studio, genre, topic, multi, ...over });
+
+  const {
+    films: list,
+    total,
+    countries,
+    decadeCounts,
+    yearsInDecade,
+    genresAvail,
+    topicCounts,
+    coproductionGroups,
+    countrySections,
+    groupByCountry,
+    yearVal,
+  } = data;
 
   return (
     <section className="space-y-6">
@@ -122,36 +228,49 @@ function FilmsContent() {
           <h1 className="font-display text-3xl text-light">Фильмы</h1>
           <p className="titre">
             {list.length} из {total}
+            {topic && <> · тема {topicCounts.find((t) => t.id === topic)?.name_ru ?? topic}</>}
+            {multi && <> · со-продукции</>}
             {country && (
-              <>
-                {" · "}
-                <ClientAbbr kind="countries" code={country} display="name" />
-              </>
+              <> · <ClientAbbr kind="countries" code={country} display="name" /></>
             )}
-            {year && <> · {year}</>}
-            {studio && <> · студия {studio}</>}
-            {genre && (
-              <>
-                {" · "}
-                <ClientAbbr kind="genres" code={genre} display="name" />
-              </>
-            )}
+            {decade != null && <> · {decade}-е</>}
+            {yearVal != null && <> · {yearVal}</>}
+            {genre && <> · <ClientAbbr kind="genres" code={genre} display="name" /></>}
           </p>
         </div>
       </header>
 
-      <FilterRow label="страна">
-        <ChipLink
-          active={!country}
-          href={hrefWith({ country: undefined, year: yearParam, studio, genre })}
-          label="Все"
+      {/* ТЕМА */}
+      <FilterRow label="тема">
+        <Chip active={!topic && !multi} href={link({ topic: undefined, multi: false })} label="Все" />
+        <Chip
+          active={multi}
+          href={link({ multi: !multi, topic: undefined })}
+          label={<span>со-продукции <span className="text-light/40">{multi ? "✓" : ""}</span></span>}
         />
+        {topicCounts.map((t) => (
+          <Chip
+            key={t.id}
+            active={topic === t.id}
+            href={link({ topic: t.id, multi: false })}
+            label={
+              <span>
+                {t.name_ru} <span className="text-light/40">{t.count}</span>
+              </span>
+            }
+          />
+        ))}
+      </FilterRow>
+
+      {/* СТРАНА */}
+      <FilterRow label="страна">
+        <Chip active={!country} href={link({ country: undefined })} label="Все" />
         {countries.map((c) => (
-          <ChipLink
+          <Chip
             key={c.code}
             active={country === c.code}
             disabled={c.count === 0 && country !== c.code}
-            href={hrefWith({ country: c.code, year: yearParam, studio, genre })}
+            href={link({ country: c.code })}
             label={
               <span>
                 <ClientAbbr kind="countries" code={c.code} />{" "}
@@ -162,34 +281,55 @@ function FilmsContent() {
         ))}
       </FilterRow>
 
-      <FilterRow label="год">
-        <ChipLink
-          active={year == null}
-          href={hrefWith({ country, year: "all", studio, genre })}
+      {/* ДЕСЯТИЛЕТИЕ */}
+      <FilterRow label="декада">
+        <Chip
+          active={decade == null && (yearParam === "all" || yearParam === undefined)}
+          href={link({ decade: undefined, year: "all" })}
           label="Все"
         />
-        {years.map((y) => (
-          <ChipLink
-            key={y}
-            active={year === y}
-            href={hrefWith({ country, year: String(y), studio, genre })}
-            label={String(y)}
-          />
-        ))}
+        {DECADES.map((d) => {
+          const c = decadeCounts.get(d) ?? 0;
+          return (
+            <Chip
+              key={d}
+              active={decade === d}
+              disabled={c === 0 && decade !== d}
+              href={link({ decade: d, year: undefined })}
+              label={
+                <span>
+                  {d}-е <span className="text-light/40">{c}</span>
+                </span>
+              }
+            />
+          );
+        })}
       </FilterRow>
 
+      {/* ГОД (только если выбрано десятилетие) */}
+      {decade != null && yearsInDecade.length > 0 && (
+        <FilterRow label="год">
+          <Chip active={yearVal == null} href={link({ year: undefined })} label="Все" />
+          {yearsInDecade.map((y) => (
+            <Chip
+              key={y}
+              active={yearVal === y}
+              href={link({ year: String(y) })}
+              label={String(y)}
+            />
+          ))}
+        </FilterRow>
+      )}
+
+      {/* ЖАНР */}
       {genresAvail.length > 0 && (
         <FilterRow label="жанр">
-          <ChipLink
-            active={!genre}
-            href={hrefWith({ country, year: yearParam, studio, genre: undefined })}
-            label="Все"
-          />
+          <Chip active={!genre} href={link({ genre: undefined })} label="Все" />
           {genresAvail.map((g) => (
-            <ChipLink
+            <Chip
               key={g.code}
               active={genre === g.code}
-              href={hrefWith({ country, year: yearParam, studio, genre: g.code })}
+              href={link({ genre: g.code })}
               label={
                 <span>
                   <ClientAbbr kind="genres" code={g.code} display="name" />{" "}
@@ -201,48 +341,87 @@ function FilmsContent() {
         </FilterRow>
       )}
 
-      <ul className="divide-y divide-light/10">
-        {list.map((f) => (
-          <li
-            key={f.id}
-            className="py-3 flex items-baseline justify-between gap-4"
-          >
-            <Link href={`/films/${f.id}`} className="hover:underline">
-              <span className="font-medium">{f.title_ru}</span>
-              {f.title_original && f.title_original !== f.title_ru && (
-                <span className="text-light/60 ml-2">«{f.title_original}»</span>
-              )}
-            </Link>
-            <span className="text-sm text-light/60 shrink-0">
-              {f.year}
-              {f.country.length > 0 && (
-                <span className="ml-2">
-                  {f.country.map((c, i) => (
+      {/* СПИСОК */}
+      {coproductionGroups.length > 0 ? (
+        <div className="space-y-3">
+          {coproductionGroups.map((g, i) => (
+            <details key={g.key} open={i < 3} className="border border-light/10 rounded overflow-hidden group">
+              <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
+                <span className="font-display text-lg text-light">
+                  <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">▸</span>
+                  {g.label.split("+").map((c, idx) => (
                     <span key={c}>
-                      {i > 0 && ", "}
-                      <ClientAbbr kind="countries" code={c} />
+                      {idx > 0 && " + "}
+                      <ClientAbbr kind="countries" code={c} display="name" />
                     </span>
                   ))}
                 </span>
-              )}
-            </span>
-          </li>
-        ))}
-      </ul>
+                <span className="titre">{g.items.length}</span>
+              </summary>
+              <FilmList films={g.items} />
+            </details>
+          ))}
+        </div>
+      ) : groupByCountry && countrySections.length > 0 ? (
+        <div className="space-y-3">
+          {countrySections.map((s, i) => (
+            <details key={s.code} open={i === 0} className="border border-light/10 rounded overflow-hidden group">
+              <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
+                <span className="font-display text-lg text-light">
+                  <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">▸</span>
+                  <ClientAbbr kind="countries" code={s.code} display="name" />
+                </span>
+                <span className="titre">{s.items.length}</span>
+              </summary>
+              <FilmList films={s.items} />
+            </details>
+          ))}
+        </div>
+      ) : (
+        <FilmList films={list} />
+      )}
 
       {list.length === 0 && (
         <p className="text-light/60">
-          По выбранным фильтрам ничего не нашлось. Попробуйте сбросить
-          страну или год.
+          По выбранным фильтрам ничего не нашлось. Попробуй сбросить страну,
+          десятилетие или тему.
         </p>
       )}
     </section>
   );
 }
 
+function FilmList({ films }: { films: FilmIndexEntry[] }) {
+  return (
+    <ul className="divide-y divide-light/10">
+      {films.map((f) => (
+        <li key={f.id} className="py-3 px-3 flex items-baseline justify-between gap-4">
+          <Link href={`/films/${f.id}`} className="hover:underline">
+            <span className="font-medium">{f.title_ru}</span>
+            {f.title_original && f.title_original !== f.title_ru && (
+              <span className="text-light/60 ml-2">«{f.title_original}»</span>
+            )}
+          </Link>
+          <span className="text-sm text-light/60 shrink-0">
+            {f.year}
+            {f.country.length > 0 && (
+              <span className="ml-2">
+                {f.country.map((c, i) => (
+                  <span key={c}>
+                    {i > 0 && ", "}
+                    <ClientAbbr kind="countries" code={c} />
+                  </span>
+                ))}
+              </span>
+            )}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function FilmsPage() {
-  // Suspense нужен, потому что useSearchParams внутри FilmsContent
-  // вызывает CSR bailout в production builds (Next.js требование).
   return (
     <Suspense fallback={null}>
       <FilmsContent />
@@ -250,13 +429,7 @@ export default function FilmsPage() {
   );
 }
 
-function FilterRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline gap-3 flex-wrap">
       <p className="titre w-14 shrink-0">{label}</p>
@@ -265,7 +438,7 @@ function FilterRow({
   );
 }
 
-function ChipLink({
+function Chip({
   href,
   label,
   active,
@@ -293,23 +466,24 @@ function ChipLink({
   );
 }
 
-function hrefWith({
-  country,
-  year,
-  studio,
-  genre,
-}: {
+interface Params {
   country?: string;
+  decade?: number;
   year?: string;
   studio?: string;
   genre?: string;
-}): LinkHref {
-  const query: Record<string, string> = {};
-  if (country) query.country = country;
-  if (year) query.year = year;
-  if (studio) query.studio = studio;
-  if (genre) query.genre = genre;
-  return Object.keys(query).length
-    ? { pathname: "/films", query }
-    : { pathname: "/films" };
+  topic?: string;
+  multi?: boolean;
+}
+
+function hrefWith(p: Params): LinkHref {
+  const q: Record<string, string> = {};
+  if (p.country) q.country = p.country;
+  if (p.decade != null) q.decade = String(p.decade);
+  if (p.year) q.year = p.year;
+  if (p.studio) q.studio = p.studio;
+  if (p.genre) q.genre = p.genre;
+  if (p.topic) q.topic = p.topic;
+  if (p.multi) q.multi = "1";
+  return Object.keys(q).length ? { pathname: "/films", query: q } : { pathname: "/films" };
 }

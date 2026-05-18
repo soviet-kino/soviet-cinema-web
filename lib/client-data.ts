@@ -46,7 +46,9 @@ export interface TopicIndexEntry {
   id: string;
   name_ru: string;
   description_ru?: string;
-  films?: string[];
+  /** Резолвленный build-time список фильмов темы (через явное Film.topics
+   * и/или Topic.filter, включая book_author через references). */
+  films: string[];
   filter?: {
     director?: string;
     screenwriter?: string;
