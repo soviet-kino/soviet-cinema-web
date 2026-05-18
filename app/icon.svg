@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="3" fill="#0a0a0d"/>
+  <!-- Кадр плёнки: 4 малых квадрата сверху и снизу + большой кадр в центре -->
+  <g fill="#c4933e">
+    <!-- верхняя перфорация -->
+    <rect x="3"  y="4" width="2" height="2"/>
+    <rect x="8"  y="4" width="2" height="2"/>
+    <rect x="13" y="4" width="2" height="2"/>
+    <rect x="18" y="4" width="2" height="2"/>
+    <rect x="23" y="4" width="2" height="2"/>
+    <rect x="27" y="4" width="2" height="2"/>
+    <!-- нижняя перфорация -->
+    <rect x="3"  y="26" width="2" height="2"/>
+    <rect x="8"  y="26" width="2" height="2"/>
+    <rect x="13" y="26" width="2" height="2"/>
+    <rect x="18" y="26" width="2" height="2"/>
+    <rect x="23" y="26" width="2" height="2"/>
+    <rect x="27" y="26" width="2" height="2"/>
+  </g>
+  <!-- центральный «кадр» — экран -->
+  <rect x="4" y="9" width="24" height="14" fill="#e8e3d3" opacity="0.92"/>
+  <!-- центральный знак — звезда (отсылка к титрам) -->
+  <path d="M16 13 L17 15 L19.2 15.3 L17.6 16.8 L18 19 L16 17.9 L14 19 L14.4 16.8 L12.8 15.3 L15 15 Z" fill="#b03a32"/>
+</svg>
