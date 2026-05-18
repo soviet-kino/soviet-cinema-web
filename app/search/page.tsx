@@ -1,21 +1,98 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import MiniSearch from "minisearch";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
 
-import { Abbr } from "@/lib/abbr";
 import { Breadcrumbs } from "@/lib/breadcrumbs";
+import { ClientAbbr } from "@/lib/client-abbr";
+import {
+  loadFilms,
+  loadPeople,
+  type FilmIndexEntry,
+  type PersonIndexEntry,
+} from "@/lib/client-data";
 import { Avatar } from "@/lib/media-components";
-import { searchFilms, searchPeople } from "@/lib/queries";
 
-interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+interface SearchEngines {
+  films: MiniSearch<FilmIndexEntry>;
+  people: MiniSearch<PersonIndexEntry>;
+  filmsById: Map<string, FilmIndexEntry>;
+  peopleById: Map<string, PersonIndexEntry>;
 }
 
-export const metadata = { title: "Поиск — Soviet Bloc Cinema" };
+let cachedEngines: Promise<SearchEngines> | null = null;
 
-export default async function SearchPage({ searchParams }: PageProps) {
-  const { q = "" } = await searchParams;
+function buildEngines(): Promise<SearchEngines> {
+  if (cachedEngines) return cachedEngines;
+  cachedEngines = (async () => {
+    const [films, people] = await Promise.all([loadFilms(), loadPeople()]);
+    const filmsEngine = new MiniSearch<FilmIndexEntry>({
+      idField: "id",
+      fields: ["title_ru", "title_original", "title_en"],
+      storeFields: ["id"],
+      searchOptions: { prefix: true, fuzzy: 0.2, boost: { title_ru: 2 } },
+    });
+    filmsEngine.addAll(films);
+
+    const peopleEngine = new MiniSearch<PersonIndexEntry>({
+      idField: "id",
+      fields: ["name_ru", "name_original", "name_translit"],
+      storeFields: ["id"],
+      searchOptions: { prefix: true, fuzzy: 0.2, boost: { name_ru: 2 } },
+    });
+    peopleEngine.addAll(people);
+
+    return {
+      films: filmsEngine,
+      people: peopleEngine,
+      filmsById: new Map(films.map((f) => [f.id, f])),
+      peopleById: new Map(people.map((p) => [p.id, p])),
+    };
+  })();
+  return cachedEngines;
+}
+
+function SearchContent() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const q = params.get("q") ?? "";
   const trimmed = q.trim();
-  const films = trimmed ? searchFilms(q, 80) : [];
-  const people = trimmed ? searchPeople(q, 40) : [];
+  const [draft, setDraft] = useState(q);
+  const [engines, setEngines] = useState<SearchEngines | null>(null);
+
+  useEffect(() => {
+    buildEngines().then(setEngines);
+  }, []);
+  useEffect(() => {
+    setDraft(q);
+  }, [q]);
+
+  const { films, people } = useMemo(() => {
+    if (!engines || !trimmed) return { films: [], people: [] };
+    const filmHits = engines.films.search(trimmed, { combineWith: "AND" }).slice(0, 80);
+    const personHits = engines.people.search(trimmed, { combineWith: "AND" }).slice(0, 40);
+    const films = filmHits
+      .map((h) => engines.filmsById.get(h.id as string))
+      .filter((f): f is FilmIndexEntry => !!f);
+    const people = personHits
+      .map((h) => engines.peopleById.get(h.id as string))
+      .filter((p): p is PersonIndexEntry => !!p);
+    return { films, people };
+  }, [engines, trimmed]);
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const next = draft.trim();
+    router.replace(next ? `/search?q=${encodeURIComponent(next)}` : "/search");
+  }
 
   return (
     <section className="space-y-6">
@@ -23,15 +100,16 @@ export default async function SearchPage({ searchParams }: PageProps) {
       <header className="space-y-2">
         <p className="titre">поиск</p>
         <h1 className="font-display text-3xl text-light">
-          {q.trim() ? `«${q}»` : "Поиск по каталогу"}
+          {trimmed ? `«${q}»` : "Поиск по каталогу"}
         </h1>
       </header>
 
-      <form method="get" className="flex gap-2">
+      <form onSubmit={onSubmit} className="flex gap-2">
         <input
           type="search"
           name="q"
-          defaultValue={q}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           placeholder="Введите название фильма…"
           autoFocus
           className="flex-1 bg-velvet border border-light/20 rounded px-3 py-2 text-light placeholder-light/40 focus:border-sepia focus:outline-none"
@@ -44,7 +122,9 @@ export default async function SearchPage({ searchParams }: PageProps) {
         </button>
       </form>
 
-      {trimmed && films.length === 0 && people.length === 0 && (
+      {!engines && trimmed && <p className="titre">индекс загружается…</p>}
+
+      {engines && trimmed && films.length === 0 && people.length === 0 && (
         <p className="titre">ничего не найдено</p>
       )}
 
@@ -70,7 +150,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                         {p.roles.map((r, i) => (
                           <span key={r}>
                             {i > 0 && " · "}
-                            <Abbr kind="role" code={r} display="name" />
+                            <ClientAbbr kind="roles" code={r} display="name" />
                           </span>
                         ))}
                       </p>
@@ -105,7 +185,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
                       {f.country.map((c, i) => (
                         <span key={c}>
                           {i > 0 && ", "}
-                          <Abbr kind="country" code={c} />
+                          <ClientAbbr kind="countries" code={c} />
                         </span>
                       ))}
                     </span>
@@ -119,10 +199,19 @@ export default async function SearchPage({ searchParams }: PageProps) {
 
       {!trimmed && (
         <p className="text-light/60 text-sm">
-          FTS5-поиск по русскому и оригинальному названию. Поддерживаются
-          частичные слова: «зерк» найдёт «Зеркало» и «Зеркало для героя».
+          Поиск с fuzzy-сопоставлением по русскому, оригинальному и
+          транслитерированному именам. «зерк» найдёт «Зеркало» и
+          «Зеркало для героя».
         </p>
       )}
     </section>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={null}>
+      <SearchContent />
+    </Suspense>
   );
 }
