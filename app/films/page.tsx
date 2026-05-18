@@ -1,56 +1,117 @@
-import Link from "next/link";
-import type { ComponentProps } from "react";
+"use client";
 
-import { Abbr } from "@/lib/abbr";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState, type ComponentProps } from "react";
+
 import { Breadcrumbs } from "@/lib/breadcrumbs";
-import {
-  availableCountries,
-  availableGenres,
-  availableYears,
-  countFilms,
-  listFilms,
-} from "@/lib/queries";
+import { ClientAbbr } from "@/lib/client-abbr";
+import { loadFilms, type FilmIndexEntry } from "@/lib/client-data";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
 
-interface PageProps {
-  searchParams: Promise<{
-    year?: string;
-    country?: string;
-    studio?: string;
-    genre?: string;
-  }>;
-}
+function FilmsContent() {
+  const params = useSearchParams();
+  const country = params.get("country")?.trim() || undefined;
+  const studio = params.get("studio")?.trim() || undefined;
+  const genre = params.get("genre")?.trim() || undefined;
+  const yearParam = params.get("year")?.trim() || undefined;
 
-// Без force-static, потому что searchParams — динамика. Иначе Next.js
-// кэширует один вариант (для года по умолчанию) и игнорирует параметры.
-export default async function FilmsPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const country = params.country?.trim() || undefined;
-  const studio = params.studio?.trim() || undefined;
-  const genre = params.genre?.trim() || undefined;
-  const yearParam = params.year?.trim();
-  const total = countFilms();
+  const [films, setFilms] = useState<FilmIndexEntry[] | null>(null);
 
-  // Если есть фильтр по студии/стране/жанру без явного года — показываем
-  // всю выборку без year-дефолта; иначе по умолчанию — самый поздний год.
-  const yearsForCountry = availableYears(country);
-  const hasNonYearFilter = !!(studio || genre);
-  const defaultYearForList = hasNonYearFilter ? undefined : yearsForCountry[0];
-  const year =
-    yearParam === "all"
-      ? undefined
-      : yearParam
-        ? Number(yearParam)
-        : defaultYearForList;
+  useEffect(() => {
+    loadFilms().then(setFilms);
+  }, []);
 
-  const films = listFilms({ year, country, studio, genre });
-  const countriesForYear = availableCountries(year);
-  // Жанры показываем для текущего среза (year + country), без учёта
-  // самого жанра — иначе чипы будут зависеть от собственного выбора.
-  const genresForCurrent = availableGenres({ year, country }).filter(
-    (g) => g.count > 0 || g.code === genre,
-  );
+  const data = useMemo(() => {
+    if (!films) return null;
+
+    // Все года, доступные для выбранной страны (если страна задана).
+    const filmsForCountry = country
+      ? films.filter((f) => f.country.includes(country))
+      : films;
+    const years = [
+      ...new Set(filmsForCountry.map((f) => f.year).filter((y): y is number => y != null)),
+    ].sort((a, b) => b - a);
+
+    const hasNonYearFilter = !!(studio || genre);
+    const defaultYearForList = hasNonYearFilter ? undefined : years[0];
+    const year =
+      yearParam === "all"
+        ? undefined
+        : yearParam
+          ? Number(yearParam)
+          : defaultYearForList;
+
+    // Фильтрация.
+    let filtered = films;
+    if (year != null) filtered = filtered.filter((f) => f.year === year);
+    if (country) filtered = filtered.filter((f) => f.country.includes(country));
+    if (studio) filtered = filtered.filter((f) => f.studio.includes(studio));
+    if (genre) filtered = filtered.filter((f) => f.genre.includes(genre));
+    filtered = [...filtered].sort((a, b) => {
+      const ay = a.year ?? 0;
+      const by = b.year ?? 0;
+      if (ay !== by) return by - ay;
+      return a.title_ru.localeCompare(b.title_ru, "ru");
+    });
+
+    // Доступные страны для текущего года (если год задан).
+    const filmsForYear = year != null ? films.filter((f) => f.year === year) : films;
+    const countryCounts = new Map<string, number>();
+    for (const f of filmsForYear) {
+      for (const c of f.country) {
+        countryCounts.set(c, (countryCounts.get(c) ?? 0) + 1);
+      }
+    }
+    // Полный список стран — все из vocabulary, но порядок по count.
+    // Берём union of ever-seen стран в индексе.
+    const allCountriesSet = new Set<string>();
+    for (const f of films) for (const c of f.country) allCountriesSet.add(c);
+    const countries = [...allCountriesSet]
+      .map((code) => ({ code, count: countryCounts.get(code) ?? 0 }))
+      .sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+
+    // Жанры в текущем срезе year+country (без учёта самого жанра).
+    const filmsForGenres = (() => {
+      let s = films;
+      if (year != null) s = s.filter((f) => f.year === year);
+      if (country) s = s.filter((f) => f.country.includes(country));
+      return s;
+    })();
+    const genreCounts = new Map<string, number>();
+    for (const f of filmsForGenres) {
+      for (const g of f.genre) genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
+    }
+    const genresAvail = [...genreCounts.entries()]
+      .map(([code, count]) => ({ code, count }))
+      .filter((g) => g.count > 0 || g.code === genre)
+      .sort((a, b) => b.count - a.count);
+
+    return {
+      films: filtered,
+      year,
+      years,
+      countries,
+      genresAvail,
+      total: films.length,
+    };
+  }, [films, country, studio, genre, yearParam]);
+
+  if (!data) {
+    return (
+      <section className="space-y-6">
+        <Breadcrumbs items={[{ label: "фильмы" }]} />
+        <header className="space-y-2">
+          <p className="titre">каталог</p>
+          <h1 className="font-display text-3xl text-light">Фильмы</h1>
+        </header>
+        <p className="text-light/40 titre">загрузка…</p>
+      </section>
+    );
+  }
+
+  const { films: list, year, years, countries, genresAvail, total } = data;
 
   return (
     <section className="space-y-6">
@@ -60,11 +121,11 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h1 className="font-display text-3xl text-light">Фильмы</h1>
           <p className="titre">
-            {films.length} из {total}
+            {list.length} из {total}
             {country && (
               <>
                 {" · "}
-                <Abbr kind="country" code={country} display="name" />
+                <ClientAbbr kind="countries" code={country} display="name" />
               </>
             )}
             {year && <> · {year}</>}
@@ -72,21 +133,20 @@ export default async function FilmsPage({ searchParams }: PageProps) {
             {genre && (
               <>
                 {" · "}
-                <Abbr kind="genre" code={genre} display="name" />
+                <ClientAbbr kind="genres" code={genre} display="name" />
               </>
             )}
           </p>
         </div>
       </header>
 
-      {/* СТРАНЫ */}
       <FilterRow label="страна">
         <ChipLink
           active={!country}
           href={hrefWith({ country: undefined, year: yearParam, studio, genre })}
           label="Все"
         />
-        {countriesForYear.map((c) => (
+        {countries.map((c) => (
           <ChipLink
             key={c.code}
             active={country === c.code}
@@ -94,7 +154,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
             href={hrefWith({ country: c.code, year: yearParam, studio, genre })}
             label={
               <span>
-                <Abbr kind="country" code={c.code} />{" "}
+                <ClientAbbr kind="countries" code={c.code} />{" "}
                 <span className="text-light/40">{c.count}</span>
               </span>
             }
@@ -102,14 +162,13 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         ))}
       </FilterRow>
 
-      {/* ГОДЫ */}
       <FilterRow label="год">
         <ChipLink
           active={year == null}
           href={hrefWith({ country, year: "all", studio, genre })}
           label="Все"
         />
-        {yearsForCountry.map((y) => (
+        {years.map((y) => (
           <ChipLink
             key={y}
             active={year === y}
@@ -119,22 +178,21 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         ))}
       </FilterRow>
 
-      {/* ЖАНРЫ */}
-      {genresForCurrent.length > 0 && (
+      {genresAvail.length > 0 && (
         <FilterRow label="жанр">
           <ChipLink
             active={!genre}
             href={hrefWith({ country, year: yearParam, studio, genre: undefined })}
             label="Все"
           />
-          {genresForCurrent.map((g) => (
+          {genresAvail.map((g) => (
             <ChipLink
               key={g.code}
               active={genre === g.code}
               href={hrefWith({ country, year: yearParam, studio, genre: g.code })}
               label={
                 <span>
-                  <Abbr kind="genre" code={g.code} display="name" />{" "}
+                  <ClientAbbr kind="genres" code={g.code} display="name" />{" "}
                   <span className="text-light/40">{g.count}</span>
                 </span>
               }
@@ -144,7 +202,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
       )}
 
       <ul className="divide-y divide-light/10">
-        {films.map((f) => (
+        {list.map((f) => (
           <li
             key={f.id}
             className="py-3 flex items-baseline justify-between gap-4"
@@ -162,7 +220,7 @@ export default async function FilmsPage({ searchParams }: PageProps) {
                   {f.country.map((c, i) => (
                     <span key={c}>
                       {i > 0 && ", "}
-                      <Abbr kind="country" code={c} />
+                      <ClientAbbr kind="countries" code={c} />
                     </span>
                   ))}
                 </span>
@@ -172,13 +230,23 @@ export default async function FilmsPage({ searchParams }: PageProps) {
         ))}
       </ul>
 
-      {films.length === 0 && (
+      {list.length === 0 && (
         <p className="text-light/60">
           По выбранным фильтрам ничего не нашлось. Попробуйте сбросить
           страну или год.
         </p>
       )}
     </section>
+  );
+}
+
+export default function FilmsPage() {
+  // Suspense нужен, потому что useSearchParams внутри FilmsContent
+  // вызывает CSR bailout в production builds (Next.js требование).
+  return (
+    <Suspense fallback={null}>
+      <FilmsContent />
+    </Suspense>
   );
 }
 
@@ -208,9 +276,6 @@ function ChipLink({
   active: boolean;
   disabled?: boolean;
 }) {
-  // Приглушённые чипы (count=0) всё равно кликаем — клик уведёт на
-  // пустую выборку и UI покажет «нет фильмов». Это правильно: чип-
-  // фильтр должен быть стабильным, не появляться/исчезать.
   return (
     <Link
       href={href}
