@@ -42,9 +42,19 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://soviet-cinema.pages.dev' }}
         run: npm run build
 
+      # wrangler pages deploy не создаёт проект сам — нужно сделать это
+      # один раз. Команда идемпотентна: если проект уже есть, падает с
+      # "already exists", это ок (|| true).
+      - name: Ensure Cloudflare Pages project exists
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create soviet-cinema --production-branch=main || true
+
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy out --project-name=soviet-cinema --branch=main
+          command: pages deploy out --project-name=soviet-cinema --branch=main --commit-dirty=true
