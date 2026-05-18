@@ -1,22 +1,61 @@
-import Link from "next/link";
-import type { ComponentProps } from "react";
+"use client";
 
-import { Abbr } from "@/lib/abbr";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState, type ComponentProps } from "react";
+
 import { Breadcrumbs } from "@/lib/breadcrumbs";
+import { ClientAbbr } from "@/lib/client-abbr";
+import { loadPeople, type PersonIndexEntry } from "@/lib/client-data";
 import { Avatar } from "@/lib/media-components";
-import { availableRoles, listPeople } from "@/lib/queries";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
 
-interface PageProps {
-  searchParams: Promise<{ role?: string }>;
-}
+function PeopleContent() {
+  const params = useSearchParams();
+  const role = params.get("role")?.trim() || undefined;
+  const [people, setPeople] = useState<PersonIndexEntry[] | null>(null);
 
-export default async function PeoplePage({ searchParams }: PageProps) {
-  const params = await searchParams;
-  const role = params.role?.trim() || undefined;
-  const people = listPeople({ role });
-  const roles = availableRoles().filter((r) => r.count > 0 || r.code === role);
+  useEffect(() => {
+    loadPeople().then(setPeople);
+  }, []);
+
+  const data = useMemo(() => {
+    if (!people) return null;
+
+    const filtered = role ? people.filter((p) => p.roles.includes(role)) : people;
+
+    // Сортировка как на сервере: по name_ru, ru-locale.
+    const sorted = [...filtered].sort((a, b) =>
+      (a.name_ru ?? a.id).localeCompare(b.name_ru ?? b.id, "ru"),
+    );
+
+    const roleCounts = new Map<string, number>();
+    for (const p of people) {
+      for (const r of p.roles) roleCounts.set(r, (roleCounts.get(r) ?? 0) + 1);
+    }
+    const roles = [...roleCounts.entries()]
+      .map(([code, count]) => ({ code, count }))
+      .filter((r) => r.count > 0 || r.code === role)
+      .sort((a, b) => b.count - a.count);
+
+    return { people: sorted, roles };
+  }, [people, role]);
+
+  if (!data) {
+    return (
+      <section className="space-y-6">
+        <Breadcrumbs items={[{ label: "люди" }]} />
+        <header className="space-y-2">
+          <p className="titre">галерея</p>
+          <h1 className="font-display text-3xl text-light">Люди</h1>
+        </header>
+        <p className="text-light/40 titre">загрузка…</p>
+      </section>
+    );
+  }
+
+  const { people: list, roles } = data;
 
   return (
     <section className="space-y-6">
@@ -26,11 +65,11 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         <div className="flex items-baseline justify-between gap-4 flex-wrap">
           <h1 className="font-display text-3xl text-light">Люди</h1>
           <p className="titre">
-            {people.length}
+            {list.length}
             {role && (
               <>
                 {" · "}
-                <Abbr kind="role" code={role} display="name" />
+                <ClientAbbr kind="roles" code={role} display="name" />
               </>
             )}
           </p>
@@ -48,7 +87,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               href={{ pathname: "/people", query: { role: r.code } }}
               label={
                 <span>
-                  <Abbr kind="role" code={r.code} display="name" />{" "}
+                  <ClientAbbr kind="roles" code={r.code} display="name" />{" "}
                   <span className="text-light/40">{r.count}</span>
                 </span>
               }
@@ -64,7 +103,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       </p>
 
       <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {people.map((p) => (
+        {list.map((p) => (
           <li key={p.id}>
             <Link
               href={`/people/${p.id}`}
@@ -84,7 +123,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
                     {p.roles.map((r, i) => (
                       <span key={r}>
                         {i > 0 && " · "}
-                        <Abbr kind="role" code={r} display="name" />
+                        <ClientAbbr kind="roles" code={r} display="name" />
                       </span>
                     ))}
                   </p>
@@ -99,6 +138,14 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         ))}
       </ul>
     </section>
+  );
+}
+
+export default function PeoplePage() {
+  return (
+    <Suspense fallback={null}>
+      <PeopleContent />
+    </Suspense>
   );
 }
 
