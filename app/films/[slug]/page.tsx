@@ -86,14 +86,24 @@ export default async function FilmPage({ params }: PageProps) {
             <p className="text-sm text-light/60">{film.title_en}</p>
           )}
           <p className="text-light/70">
-            {film.year}
+            <Link
+              href={{ pathname: "/films", query: { year: String(film.year) } }}
+              className="hover:text-sepia hover:underline"
+            >
+              {film.year}
+            </Link>
             {film.country.length > 0 && (
               <span>
                 {" · "}
                 {film.country.map((c, i) => (
                   <span key={c}>
                     {i > 0 && ", "}
-                    <Abbr kind="country" code={c} />
+                    <Link
+                      href={{ pathname: "/films", query: { country: c, year: "all" } }}
+                      className="hover:text-sepia"
+                    >
+                      <Abbr kind="country" code={c} />
+                    </Link>
                   </span>
                 ))}
               </span>
