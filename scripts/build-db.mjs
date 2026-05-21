@@ -40,6 +40,10 @@ function main() {
   const topics = readYamlDir(path.join(DATA_ROOT, "topics"));
   const references = readYamlDir(path.join(DATA_ROOT, "references"));
   const motifs = readYamlDir(path.join(DATA_ROOT, "motifs"));
+  const collections = (() => {
+    const dir = path.join(DATA_ROOT, "collections");
+    return fs.existsSync(dir) ? readYamlDir(dir) : [];
+  })();
 
   const db = new Database(OUT);
   db.pragma("journal_mode = WAL");
@@ -305,10 +309,12 @@ function main() {
         const c4 = !filter.screenwriter || (f.screenwriter ?? []).includes(filter.screenwriter);
         const c5 = !filter.country || (f.country ?? []).includes(filter.country);
         const c6 = !filter.book_author || filmsFromRefs?.has(f.id);
+        const c7 = !filter.composer || (f.composer ?? []).includes(filter.composer);
         const anySet =
           filter.year_from != null || filter.year_to != null ||
-          filter.director || filter.screenwriter || filter.country || filter.book_author;
-        if (c1 && c2 && c3 && c4 && c5 && c6 && anySet) m = true;
+          filter.director || filter.screenwriter || filter.country ||
+          filter.book_author || filter.composer;
+        if (c1 && c2 && c3 && c4 && c5 && c6 && c7 && anySet) m = true;
       }
       if (m && !seen.has(f.id)) { seen.add(f.id); out.push(f.id); }
     }
@@ -316,6 +322,7 @@ function main() {
   });
   writeJson("topics.json", topicsWithFilms);
   writeJson("motifs.json", motifs);
+  writeJson("collections.json", collections);
   writeJson("refs.json", references);
 
   // Словари — {kind: {code: {name, description}}}.
