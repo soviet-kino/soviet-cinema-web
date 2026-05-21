@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/films", label: "Фильмы" },
   { href: "/people", label: "Люди" },
+  { href: "/personalities", label: "Личности" },
   { href: "/studios", label: "Студии" },
   { href: "/topics", label: "Темы" },
   { href: "/motifs", label: "Мотивы" },

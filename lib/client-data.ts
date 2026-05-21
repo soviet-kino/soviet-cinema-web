@@ -59,6 +59,15 @@ export interface TopicIndexEntry {
   };
 }
 
+export interface CollectionIndexEntry {
+  id: string;
+  name_ru: string;
+  description_ru: string;
+  long_description_ru?: string;
+  people: string[];
+  films: string[];
+}
+
 export interface MotifIndexEntry {
   id: string;
   name_ru: string;
@@ -132,6 +141,7 @@ export const loadFilms = () => load<FilmIndexEntry[]>("films-index.json");
 export const loadPeople = () => load<PersonIndexEntry[]>("people-index.json");
 export const loadStudios = () => load<StudioIndexEntry[]>("studios.json");
 export const loadTopics = () => load<TopicIndexEntry[]>("topics.json");
+export const loadCollections = () => load<CollectionIndexEntry[]>("collections.json");
 export const loadMotifs = () => load<MotifIndexEntry[]>("motifs.json");
 export const loadRefs = () => load<ReferenceIndexEntry[]>("refs.json");
 export const loadVocabulary = () => load<Vocabulary>("vocabulary.json");
