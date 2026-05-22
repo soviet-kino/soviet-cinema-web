@@ -35,6 +35,7 @@ export interface FilmListItem {
   year: number;
   country: string[];
   poster_commons?: string;
+  poster_tmdb_path?: string;
 }
 
 export function listFilms(opts?: {
@@ -102,7 +103,8 @@ export function listFilms(opts?: {
   }
   const sql = `
     SELECT id, year, title_ru, title_original, country,
-           json_extract(data, '$.poster_commons') AS poster_commons
+           json_extract(data, '$.poster_commons') AS poster_commons,
+           json_extract(data, '$.poster_tmdb_path') AS poster_tmdb_path
     FROM films
     ${where.length ? "WHERE " + where.join(" AND ") : ""}
     ORDER BY year DESC, title_ru COLLATE NOCASE
@@ -111,6 +113,7 @@ export function listFilms(opts?: {
   if (opts?.limit) params.push(opts.limit);
   const rows = conn.prepare(sql).all(...params) as (FilmRow & {
     poster_commons: string | null;
+    poster_tmdb_path: string | null;
   })[];
   return rows.map((r) => ({
     id: r.id,
@@ -119,6 +122,7 @@ export function listFilms(opts?: {
     year: r.year,
     country: r.country ? r.country.split(",") : [],
     poster_commons: r.poster_commons ?? undefined,
+    poster_tmdb_path: r.poster_tmdb_path ?? undefined,
   }));
 }
 

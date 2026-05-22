@@ -41,3 +41,15 @@ export function youtubeSearchUrl(title: string, year: number): string {
   const q = encodeURIComponent(`${title} ${year} фильм`);
   return `https://www.youtube.com/results?search_query=${q}`;
 }
+
+/**
+ * URL постера/кадра с TMDB CDN.
+ * path выглядит как «/abcXYZ.jpg» — TMDB API так его и возвращает.
+ * size: w185 / w342 / w500 / w780 / original (для постеров)
+ *       или w300/w780/w1280/original (для backdrop).
+ */
+export function tmdbImageUrl(path: string, size: string = "w500"): string {
+  // image.tmdb.org — единый base.
+  const safe = path.startsWith("/") ? path : `/${path}`;
+  return `https://image.tmdb.org/t/p/${size}${safe}`;
+}

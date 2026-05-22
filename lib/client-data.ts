@@ -16,6 +16,7 @@ export interface FilmIndexEntry {
   genre: string[];
   topics: string[];
   poster_commons?: string;
+  poster_tmdb_path?: string;
   youtube?: string;
 }
 

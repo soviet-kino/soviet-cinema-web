@@ -3,6 +3,7 @@
 import {
   commonsFilePage,
   commonsUrl,
+  tmdbImageUrl,
   youtubeEmbedUrl,
   youtubeSearchUrl,
   youtubeThumbnail,
@@ -11,59 +12,87 @@ import {
 import { ZoomableImage } from "./zoomable-image";
 
 interface PosterProps {
+  /** Wikimedia Commons filename. Приоритет: Commons (CC-лицензия). */
   filename?: string;
+  /** TMDB path вида «/abcXYZ.jpg». Fallback, когда нет Commons. */
+  tmdbPath?: string;
   alt: string;
-  /** Желаемая ширина изображения в пикселях. */
   width?: number;
   className?: string;
 }
 
 /**
- * Постер фильма с Wikimedia Commons.
+ * Постер фильма. Источники в порядке приоритета:
+ *   1. Wikimedia Commons — открытая лицензия, наша основная база.
+ *   2. TMDB CDN — больше покрытие; в футере сайта обязательная
+ *      атрибуция TMDB.
  *
- * Если filename не передан — рендерим декоративный плейсхолдер,
- * чтобы вёрстка карточки не прыгала между фильмами с/без постера.
+ * Если ничего нет — декоративный плейсхолдер, чтобы вёрстка не прыгала.
  */
-export function Poster({ filename, alt, width = 400, className }: PosterProps) {
-  if (!filename) {
+export function Poster({ filename, tmdbPath, alt, width = 400, className }: PosterProps) {
+  if (filename) {
     return (
-      <div
-        className={
-          "aspect-[2/3] w-full bg-light/5 border border-light/10 flex items-center justify-center text-light/30 text-sm " +
-          (className ?? "")
-        }
-        aria-hidden="true"
-      >
-        нет постера
-      </div>
+      <figure className={"space-y-1 " + (className ?? "")}>
+        <ZoomableImage
+          src={commonsUrl(filename, width)}
+          fullSrc={commonsUrl(filename, 1600)}
+          alt={alt}
+          imgClassName="w-full h-auto block border border-light/10 hover:border-sepia/40 transition-colors"
+          caption={
+            <>
+              {alt}
+              {" · "}
+              <a
+                href={commonsFilePage(filename)}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="underline decoration-dotted underline-offset-2 hover:text-sepia"
+              >
+                на Wikimedia Commons
+              </a>
+            </>
+          }
+        />
+        <figcaption className="text-[10px] text-light/50 leading-tight">
+          Wikimedia Commons
+        </figcaption>
+      </figure>
+    );
+  }
+  if (tmdbPath) {
+    return (
+      <figure className={"space-y-1 " + (className ?? "")}>
+        <ZoomableImage
+          src={tmdbImageUrl(tmdbPath, "w500")}
+          fullSrc={tmdbImageUrl(tmdbPath, "original")}
+          alt={alt}
+          imgClassName="w-full h-auto block border border-light/10 hover:border-sepia/40 transition-colors"
+          caption={<>{alt} · постер с TMDB</>}
+        />
+        <figcaption className="text-[10px] text-light/50 leading-tight">
+          Изображение предоставлено{" "}
+          <a
+            href="https://www.themoviedb.org/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline decoration-dotted underline-offset-2 hover:text-sepia"
+          >
+            TMDB
+          </a>
+        </figcaption>
+      </figure>
     );
   }
   return (
-    <figure className={"space-y-1 " + (className ?? "")}>
-      <ZoomableImage
-        src={commonsUrl(filename, width)}
-        fullSrc={commonsUrl(filename, 1600)}
-        alt={alt}
-        imgClassName="w-full h-auto block border border-light/10 hover:border-sepia/40 transition-colors"
-        caption={
-          <>
-            {alt}
-            {" · "}
-            <a
-              href={commonsFilePage(filename)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="underline decoration-dotted underline-offset-2 hover:text-sepia"
-            >
-              на Wikimedia Commons
-            </a>
-          </>
-        }
-      />
-      <figcaption className="text-[10px] text-light/50 leading-tight">
-        Wikimedia Commons
-      </figcaption>
-    </figure>
+    <div
+      className={
+        "aspect-[2/3] w-full bg-light/5 border border-light/10 flex items-center justify-center text-light/30 text-sm " +
+        (className ?? "")
+      }
+      aria-hidden="true"
+    >
+      нет постера
+    </div>
   );
 }
 
