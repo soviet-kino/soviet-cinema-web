@@ -242,6 +242,7 @@ function main() {
     genre: f.genre ?? [],
     topics: f.topics ?? [],
     poster_commons: f.poster_commons,
+    poster_tmdb_path: f.poster_tmdb_path,
     youtube: f.external_ids?.youtube,
   }));
   writeJson("films-index.json", filmsIndex);

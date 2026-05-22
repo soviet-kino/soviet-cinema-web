@@ -75,7 +75,11 @@ export default async function FilmPage({ params }: PageProps) {
       <Breadcrumbs items={[{ label: "фильмы", href: "/films" }, { label: film.title_ru }]} />
       <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6 items-start">
         <aside className="sm:row-span-2">
-          <Poster filename={film.poster_commons} alt={`Постер фильма «${film.title_ru}»`} />
+          <Poster
+            filename={film.poster_commons}
+            tmdbPath={film.poster_tmdb_path}
+            alt={`Постер фильма «${film.title_ru}»`}
+          />
         </aside>
         <header className="space-y-1">
           <h1 className="text-3xl font-semibold">{film.title_ru}</h1>

@@ -55,7 +55,11 @@ export default function HomePage() {
                   href={`/films/${f.id}`}
                   className="block frame p-1 hover:border-sepia/40 transition-colors"
                 >
-                  <FilmThumb title={f.title_ru} poster={f.poster_commons} />
+                  <FilmThumb
+                    title={f.title_ru}
+                    poster={f.poster_commons}
+                    tmdbPath={f.poster_tmdb_path}
+                  />
                   <div className="px-1 py-1.5">
                     <p className="text-light text-sm font-medium leading-tight line-clamp-2">
                       {f.title_ru}
@@ -173,11 +177,30 @@ function NavTile({
   );
 }
 
-function FilmThumb({ title, poster }: { title: string; poster?: string }) {
+function FilmThumb({
+  title,
+  poster,
+  tmdbPath,
+}: {
+  title: string;
+  poster?: string;
+  tmdbPath?: string;
+}) {
   if (poster) {
     return (
       <img
         src={`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(poster)}?width=300`}
+        alt={`Постер: ${title}`}
+        loading="lazy"
+        className="aspect-[2/3] w-full object-cover bg-velvet border border-light/5"
+      />
+    );
+  }
+  if (tmdbPath) {
+    const safe = tmdbPath.startsWith("/") ? tmdbPath : `/${tmdbPath}`;
+    return (
+      <img
+        src={`https://image.tmdb.org/t/p/w342${safe}`}
         alt={`Постер: ${title}`}
         loading="lazy"
         className="aspect-[2/3] w-full object-cover bg-velvet border border-light/5"

@@ -38,8 +38,12 @@ export interface Film {
   release_date?: string;
   production_status?: string;
   censorship_status?: string;
-  /** Имя файла на Wikimedia Commons (Wikidata P18). */
+  /** Имя файла на Wikimedia Commons (Wikidata P3383/P18). */
   poster_commons?: string;
+  /** Путь постера на TMDB CDN (как «/abcXYZ.jpg»). */
+  poster_tmdb_path?: string;
+  /** Путь фонового кадра на TMDB CDN (для hero-секции). */
+  backdrop_tmdb_path?: string;
   /** Slug-и тематических разделов, к которым относится фильм. */
   topics?: string[];
   external_ids?: ExternalIds;

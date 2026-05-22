@@ -71,8 +71,23 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </nav>
             <div className="grid sm:grid-cols-2 gap-4">
               <p>
-                Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры —
-                Wikimedia Commons и TMDB, по лицензиям правообладателей.
+                Данные — CC BY-SA 4.0. Разборы — CC BY-NC-SA 4.0. Постеры
+                с{" "}
+                <a
+                  className="underline decoration-dotted underline-offset-2"
+                  href="https://commons.wikimedia.org/"
+                >
+                  Wikimedia Commons
+                </a>{" "}
+                и{" "}
+                <a
+                  className="underline decoration-dotted underline-offset-2"
+                  href="https://www.themoviedb.org/"
+                >
+                  TMDB
+                </a>{" "}
+                — по лицензиям правообладателей. Этот продукт использует
+                TMDB API, но не одобрен и не сертифицирован TMDB.
               </p>
               <p className="sm:text-right">
                 Исходники:{" "}
