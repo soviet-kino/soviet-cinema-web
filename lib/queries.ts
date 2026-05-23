@@ -853,6 +853,7 @@ export interface DbStats {
   by_country: { code: string; count: number }[];
   by_decade: { decade: number; count: number }[];
   by_role: { code: string; count: number }[];
+  by_genre: { code: string; count: number }[];
   top_studios: { id: string; name_ru: string; count: number }[];
   top_directors: TopDirector[];
 }
@@ -904,6 +905,17 @@ export function getDbStats(): DbStats {
 
   const byRole = availableRoles().filter((r) => r.count > 0);
 
+  // Топ-12 жанров по фильмам — фильм часто в нескольких жанрах
+  // (например, comedy+adventure), поэтому сумма > totals.films.
+  const genreRows = conn
+    .prepare(
+      `SELECT je.value AS code, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.genre')) je
+        GROUP BY je.value ORDER BY c DESC LIMIT 12`,
+    )
+    .all() as { code: string; c: number }[];
+  const byGenre = genreRows.map((r) => ({ code: r.code, count: r.c }));
+
   // Топ-10 студий по фильмам.
   const topStudios = conn
     .prepare(
@@ -930,6 +942,7 @@ export function getDbStats(): DbStats {
     by_country: byCountry,
     by_decade: decadeRows.map((r) => ({ decade: r.decade, count: r.c })),
     by_role: byRole,
+    by_genre: byGenre,
     top_studios: studioInfos,
     top_directors: topDirectors(10),
   };
