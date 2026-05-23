@@ -9,6 +9,7 @@ import {
   getDbStats,
   listFilms,
   listTopics,
+  topActors,
   topDirectors,
 } from "@/lib/queries";
 import { PersonalitiesBlock } from "./personalities-block";
@@ -22,6 +23,7 @@ export default function HomePage() {
   const recent = listFilms({ limit: 18 });
   const topics = listTopics();
   const directors = topDirectors(12);
+  const actors = topActors(12);
   const foreignReleases = filmsByTopic("foreign-in-soviet-distribution").slice(0, 8);
   const stats = getDbStats();
 
@@ -190,6 +192,42 @@ export default function HomePage() {
                     {d.name_ru}
                   </p>
                   <p className="titre mt-1">{d.film_count} фильмов</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ИЗВЕСТНЫЕ АКТЁРЫ */}
+      {actors.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">
+              Самые снимающиеся актёры
+            </h2>
+            <Link href="/people?role=actor" className="titre hover:text-sepia">
+              Все актёры →
+            </Link>
+          </header>
+          <ul className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            {actors.map((a) => (
+              <li key={a.id}>
+                <Link
+                  href={`/people/${a.id}`}
+                  className="block frame p-3 text-center hover:border-sepia/40 transition-colors"
+                >
+                  <div className="flex justify-center mb-2">
+                    <Avatar
+                      filename={a.image_commons}
+                      alt={`Портрет: ${a.name_ru}`}
+                      size={64}
+                    />
+                  </div>
+                  <p className="text-light text-sm font-medium leading-tight">
+                    {a.name_ru}
+                  </p>
+                  <p className="titre mt-1">{a.film_count} ролей</p>
                 </Link>
               </li>
             ))}
