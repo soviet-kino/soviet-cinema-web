@@ -2,7 +2,13 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 import { Avatar } from "@/lib/media-components";
-import { countFilms, listFilms, listTopics, topDirectors } from "@/lib/queries";
+import {
+  countFilms,
+  filmsByTopic,
+  listFilms,
+  listTopics,
+  topDirectors,
+} from "@/lib/queries";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
 
@@ -13,6 +19,7 @@ export default function HomePage() {
   const recent = listFilms({ limit: 18 });
   const topics = listTopics();
   const directors = topDirectors(12);
+  const foreignReleases = filmsByTopic("foreign-in-soviet-distribution").slice(0, 8);
 
   return (
     <article className="space-y-16">
@@ -143,10 +150,54 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* ЗАРУБЕЖНОЕ В СОВЕТСКОМ ПРОКАТЕ */}
+      {foreignReleases.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">Зарубежное в советском прокате</h2>
+            <Link
+              href="/topics/foreign-in-soviet-distribution"
+              className="titre hover:text-sepia"
+            >
+              Все →
+            </Link>
+          </header>
+          <p className="text-light/60 text-sm max-w-3xl">
+            Фильмы, выходившие в СССР через Госкино/Совэкспортфильм. Дубляж
+            советских актёров здесь — самостоятельное искусство: Караченцов
+            за Челентано, Кенигсон за Фюнеса, Демьяненко за Бельмондо.
+          </p>
+          <div className="filmstrip py-4 px-1">
+            <ul className="reel">
+              {foreignReleases.map((f) => (
+                <li key={f.id}>
+                  <Link
+                    href={`/films/${f.id}`}
+                    className="block frame p-1 hover:border-sepia/40 transition-colors"
+                  >
+                    <FilmThumb
+                      title={f.title_ru}
+                      poster={f.poster_commons}
+                      tmdbPath={f.poster_tmdb_path}
+                    />
+                    <div className="px-1 py-1.5">
+                      <p className="text-light text-sm font-medium leading-tight line-clamp-2">
+                        {f.title_ru}
+                      </p>
+                      <p className="titre mt-1">{f.year}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       {/* НАВИГАЦИЯ */}
       <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <NavTile href="/films" titre="каталог" title="Фильмы" hint="по году, стране, режиссёру" />
-        <NavTile href="/people" titre="галерея" title="Люди" hint="режиссёры, актёры, сценаристы" />
+        <NavTile href="/personalities" titre="галерея" title="Личности" hint="выдающиеся актёры и режиссёры" />
         <NavTile href="/topics" titre="темы" title="Исследовать" hint="хрононавтика и другие срезы" />
         <NavTile href="/essays" titre="лонгриды" title="Разборы" hint="второй смысловой ряд, скоро" />
       </section>
