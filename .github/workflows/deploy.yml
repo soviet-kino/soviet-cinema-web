@@ -49,7 +49,9 @@ jobs:
       - name: Trim RSC .txt files (CFP 20k file limit)
         run: |
           before=$(find out -type f | wc -l)
-          find out -name "*.txt" -delete
+          # -type f важен: в out/ есть директории с именами вроде
+          # robots.txt/, sitemap.xml/ — их трогать нельзя.
+          find out -type f -name "*.txt" -delete
           after=$(find out -type f | wc -l)
           echo "Файлов до: $before · после: $after"
 
