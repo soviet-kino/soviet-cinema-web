@@ -65,6 +65,8 @@ function SearchContent() {
   const params = useSearchParams();
   const q = params.get("q") ?? "";
   const trimmed = q.trim();
+  const decade = params.get("decade") ?? "";
+  const country = params.get("country") ?? "";
   const [draft, setDraft] = useState(q);
   const [engines, setEngines] = useState<SearchEngines | null>(null);
 
@@ -75,23 +77,46 @@ function SearchContent() {
     setDraft(q);
   }, [q]);
 
-  const { films, people } = useMemo(() => {
-    if (!engines || !trimmed) return { films: [], people: [] };
-    const filmHits = engines.films.search(trimmed, { combineWith: "AND" }).slice(0, 80);
+  const { films, people, filmsBeforeFacets } = useMemo(() => {
+    if (!engines || !trimmed) return { films: [], people: [], filmsBeforeFacets: 0 };
+    const filmHits = engines.films.search(trimmed, { combineWith: "AND" });
     const personHits = engines.people.search(trimmed, { combineWith: "AND" }).slice(0, 40);
-    const films = filmHits
+    let allFilms = filmHits
       .map((h) => engines.filmsById.get(h.id as string))
       .filter((f): f is FilmIndexEntry => !!f);
+    const before = allFilms.length;
+    if (decade) {
+      const d = Number(decade);
+      allFilms = allFilms.filter(
+        (f) => f.year != null && f.year >= d && f.year <= d + 9,
+      );
+    }
+    if (country) {
+      allFilms = allFilms.filter((f) => f.country.includes(country));
+    }
     const people = personHits
       .map((h) => engines.peopleById.get(h.id as string))
       .filter((p): p is PersonIndexEntry => !!p);
-    return { films, people };
-  }, [engines, trimmed]);
+    return { films: allFilms.slice(0, 80), people, filmsBeforeFacets: before };
+  }, [engines, trimmed, decade, country]);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const next = draft.trim();
-    router.replace(next ? `/search?q=${encodeURIComponent(next)}` : "/search");
+    const qs = new URLSearchParams();
+    if (next) qs.set("q", next);
+    if (decade) qs.set("decade", decade);
+    if (country) qs.set("country", country);
+    router.replace(`/search${qs.toString() ? `?${qs}` : ""}`);
+  }
+
+  function setFacet(name: "decade" | "country", value: string | null) {
+    const qs = new URLSearchParams();
+    if (trimmed) qs.set("q", trimmed);
+    if (name !== "decade" && decade) qs.set("decade", decade);
+    if (name !== "country" && country) qs.set("country", country);
+    if (value) qs.set(name, value);
+    router.replace(`/search${qs.toString() ? `?${qs}` : ""}`);
   }
 
   return (
@@ -121,6 +146,52 @@ function SearchContent() {
           Искать
         </button>
       </form>
+
+      {trimmed && (
+        <div className="space-y-2">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <p className="titre w-16 shrink-0">декада</p>
+            <div className="flex flex-wrap gap-1.5">
+              <FacetChip
+                active={!decade}
+                onClick={() => setFacet("decade", null)}
+                label="Все"
+              />
+              {[1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990].map((d) => (
+                <FacetChip
+                  key={d}
+                  active={decade === String(d)}
+                  onClick={() => setFacet("decade", String(d))}
+                  label={`${d}-е`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <p className="titre w-16 shrink-0">страна</p>
+            <div className="flex flex-wrap gap-1.5">
+              <FacetChip
+                active={!country}
+                onClick={() => setFacet("country", null)}
+                label="Все"
+              />
+              {["SU", "PL", "CS", "DD", "YU", "HU", "BG", "RO"].map((c) => (
+                <FacetChip
+                  key={c}
+                  active={country === c}
+                  onClick={() => setFacet("country", c)}
+                  label={c}
+                />
+              ))}
+            </div>
+          </div>
+          {(decade || country) && films.length < filmsBeforeFacets && (
+            <p className="titre text-light/40">
+              отфильтровано: {films.length} из {filmsBeforeFacets} совпадений
+            </p>
+          )}
+        </div>
+      )}
 
       {!engines && trimmed && <p className="titre">индекс загружается…</p>}
 
@@ -213,5 +284,30 @@ export default function SearchPage() {
     <Suspense fallback={null}>
       <SearchContent />
     </Suspense>
+  );
+}
+
+function FacetChip({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "px-2 py-0.5 rounded border text-sm transition-colors " +
+        (active
+          ? "border-sepia bg-sepia/20 text-light"
+          : "border-light/20 text-light/70 hover:border-light/50 hover:text-light")
+      }
+    >
+      {label}
+    </button>
   );
 }
