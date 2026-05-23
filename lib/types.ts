@@ -46,8 +46,17 @@ export interface Film {
   backdrop_tmdb_path?: string;
   /** Slug-и тематических разделов, к которым относится фильм. */
   topics?: string[];
+  /** Советский прокат — для зарубежных фильмов (через Совэкспортфильм). */
+  soviet_release?: SovietRelease;
   external_ids?: ExternalIds;
   sources?: string[];
+}
+
+export interface SovietRelease {
+  year: number;
+  title_ru?: string;
+  dubbed?: boolean;
+  notes?: string;
 }
 
 export interface TopicFilter {

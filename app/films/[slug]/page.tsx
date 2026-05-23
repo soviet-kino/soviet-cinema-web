@@ -134,6 +134,32 @@ export default async function FilmPage({ params }: PageProps) {
               ))}
             </ul>
           )}
+          {film.soviet_release && (
+            <aside className="mt-3 frame p-3 space-y-1.5 border-sepia/30">
+              <p className="titre">в советском прокате</p>
+              <p className="text-light text-sm">
+                <span className="font-medium">{film.soviet_release.year}</span>
+                {film.soviet_release.title_ru &&
+                  film.soviet_release.title_ru !== film.title_ru && (
+                    <>
+                      {" · «"}
+                      {film.soviet_release.title_ru}
+                      {"»"}
+                    </>
+                  )}
+                {film.soviet_release.dubbed != null && (
+                  <span className="ml-2 text-light/60 text-xs">
+                    {film.soviet_release.dubbed ? "· с дубляжом" : "· субтитры"}
+                  </span>
+                )}
+              </p>
+              {film.soviet_release.notes && (
+                <p className="text-light/70 text-xs leading-snug">
+                  {film.soviet_release.notes}
+                </p>
+              )}
+            </aside>
+          )}
         </header>
         <div>
           <WatchBlock
