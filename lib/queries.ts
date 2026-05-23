@@ -252,6 +252,40 @@ export interface TopDirector {
   film_count: number;
 }
 
+/**
+ * Топ актёров по числу фильмов. Структурно как topDirectors, но идёт
+ * через cast — массив из { person, role }.
+ */
+export function topActors(limit = 12): TopDirector[] {
+  const conn = db();
+  const rows = conn
+    .prepare(
+      `SELECT je.value ->> '$.person' AS actor, COUNT(*) AS c
+         FROM films, json_each(json_extract(films.data, '$.cast')) je
+        WHERE actor IS NOT NULL
+        GROUP BY actor
+        ORDER BY c DESC
+        LIMIT ?`,
+    )
+    .all(limit) as { actor: string; c: number }[];
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.actor);
+  const placeholders = ids.map(() => "?").join(",");
+  const people = conn
+    .prepare(`SELECT id, data FROM people WHERE id IN (${placeholders})`)
+    .all(...ids) as { id: string; data: string }[];
+  const map = new Map(people.map((p) => [p.id, JSON.parse(p.data) as Person]));
+  return rows.map((r) => {
+    const p = map.get(r.actor);
+    return {
+      id: r.actor,
+      name_ru: p?.name_ru ?? r.actor,
+      image_commons: p?.image_commons,
+      film_count: r.c,
+    };
+  });
+}
+
 export function topDirectors(limit = 12): TopDirector[] {
   const conn = db();
   const rows = conn
