@@ -23,24 +23,51 @@ export default function TopicsPage() {
       {topics.length === 0 ? (
         <p className="text-light/60">Тем пока нет.</p>
       ) : (
-        <ul className="space-y-4">
-          {topics.map((t) => (
-            <li
-              key={t.id}
-              className="border border-light/10 rounded p-4 hover:border-light/40 transition-colors"
-            >
-              <Link href={`/topics/${t.id}`} className="block">
-                <h2 className="text-xl font-semibold">
-                  {t.name_ru}{" "}
-                  <span className="text-light/50 text-sm font-normal">
-                    · {t.film_count}{" "}
-                    {pluralizeFilms(t.film_count)}
-                  </span>
-                </h2>
-                <p className="text-light/70 mt-1">{t.description_ru}</p>
-              </Link>
-            </li>
-          ))}
+        <ul className="grid sm:grid-cols-2 gap-3">
+          {[...topics]
+            .sort((a, b) => b.film_count - a.film_count)
+            .map((t) => {
+              const empty = t.film_count === 0;
+              return (
+                <li
+                  key={t.id}
+                  className={
+                    "frame p-4 transition-colors " +
+                    (empty
+                      ? "border-light/5 bg-velvet/30 hover:border-light/15"
+                      : "hover:border-sepia/40")
+                  }
+                >
+                  <Link href={`/topics/${t.id}`} className="block group">
+                    <h2
+                      className={
+                        "font-display text-lg " +
+                        (empty ? "text-light/40" : "text-light group-hover:text-sepia")
+                      }
+                    >
+                      {t.name_ru}
+                    </h2>
+                    <p className="titre mt-0.5">
+                      {empty ? (
+                        <span className="text-light/30">пока пусто · ждёт наполнения</span>
+                      ) : (
+                        <>
+                          {t.film_count} {pluralizeFilms(t.film_count)}
+                        </>
+                      )}
+                    </p>
+                    <p
+                      className={
+                        "text-sm mt-2 leading-snug " +
+                        (empty ? "text-light/40" : "text-light/70")
+                      }
+                    >
+                      {t.description_ru}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
         </ul>
       )}
     </section>
