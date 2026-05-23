@@ -9,6 +9,7 @@ import {
   listTopics,
   topDirectors,
 } from "@/lib/queries";
+import { PersonalitiesBlock } from "./personalities-block";
 
 type LinkHref = ComponentProps<typeof Link>["href"];
 
@@ -149,6 +150,9 @@ export default function HomePage() {
           </ul>
         </section>
       )}
+
+      {/* ВЫДАЮЩИЕСЯ ЛИЧНОСТИ */}
+      <PersonalitiesBlock />
 
       {/* ЗАРУБЕЖНОЕ В СОВЕТСКОМ ПРОКАТЕ */}
       {foreignReleases.length > 0 && (
