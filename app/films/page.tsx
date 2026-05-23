@@ -133,10 +133,10 @@ function FilmsContent() {
       .filter((g) => g.count > 0 || g.code === genre)
       .sort((a, b) => b.count - a.count);
 
-    // Темы с counts (число фильмов в каждой теме).
+    // Темы с counts (число фильмов в каждой теме). Пустые темы
+    // показываем тоже — но приглушёнными в чипе.
     const topicCounts = topics
       .map((t) => ({ id: t.id, name_ru: t.name_ru, count: t.films.length }))
-      .filter((t) => t.count > 0 || t.id === topic)
       .sort((a, b) => b.count - a.count);
 
     // Со-продукции: групп. по парам стран (для отдельного режима multi).
@@ -252,6 +252,7 @@ function FilmsContent() {
           <Chip
             key={t.id}
             active={topic === t.id}
+            disabled={t.count === 0 && topic !== t.id}
             href={link({ topic: t.id, multi: false })}
             label={
               <span>
