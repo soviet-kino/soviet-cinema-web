@@ -69,6 +69,13 @@ export default async function FilmPage({ params }: PageProps) {
   const otherAdaptations = litAuthorSlug
     ? filmsAdaptedFromAuthor(litAuthorSlug).filter((a) => a.film_id !== slug)
     : [];
+  // Из той же студии — до 10, исключая текущий, отсортировано по году.
+  const studioSlug = film.studio?.[0];
+  const relatedByStudio = studioSlug
+    ? listFilms({ studio: studioSlug, limit: 11 })
+        .filter((f) => f.id !== slug)
+        .slice(0, 10)
+    : [];
 
   return (
     <article className="space-y-8">
@@ -271,6 +278,31 @@ export default async function FilmPage({ params }: PageProps) {
               className="titre hover:text-sepia"
             >
               Все фильмы режиссёра →
+            </Link>
+          </p>
+        </Section>
+      )}
+
+      {relatedByStudio.length > 0 && studioSlug && (
+        <Section
+          title={`Из той же студии — ${studioMap.get(studioSlug)?.name_ru ?? studioSlug}`}
+        >
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+            {relatedByStudio.map((f) => (
+              <li key={f.id}>
+                <Link href={`/films/${f.id}`} className="hover:underline">
+                  <span className="text-light/60 mr-2">{f.year}</span>
+                  <span className="font-medium">{f.title_ru}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2">
+            <Link
+              href={`/studios/${studioSlug}`}
+              className="titre hover:text-sepia"
+            >
+              Все фильмы студии →
             </Link>
           </p>
         </Section>
