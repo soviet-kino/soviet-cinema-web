@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
+import { Abbr } from "@/lib/abbr";
 import { Avatar } from "@/lib/media-components";
 import {
   countFilms,
@@ -189,6 +190,28 @@ export default function HomePage() {
                     {d.name_ru}
                   </p>
                   <p className="titre mt-1">{d.film_count} фильмов</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ЖАНРЫ — кликабельные чипы */}
+      {stats.by_genre.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">По жанрам</h2>
+          </header>
+          <ul className="flex flex-wrap gap-2">
+            {stats.by_genre.map((g) => (
+              <li key={g.code}>
+                <Link
+                  href={{ pathname: "/films", query: { genre: g.code, year: "all" } }}
+                  className="frame inline-flex items-baseline gap-2 px-3 py-1.5 hover:border-sepia/40 transition-colors"
+                >
+                  <Abbr kind="genre" code={g.code} display="name" />
+                  <span className="titre">{g.count}</span>
                 </Link>
               </li>
             ))}

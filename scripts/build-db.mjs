@@ -362,6 +362,9 @@ function main() {
   const byRole = new Map();
   for (const p of people) for (const r of p.roles ?? []) byRole.set(r, (byRole.get(r) ?? 0) + 1);
 
+  const byGenre = new Map();
+  for (const f of films) for (const g of f.genre ?? []) byGenre.set(g, (byGenre.get(g) ?? 0) + 1);
+
   const directorCount = new Map();
   for (const f of films) for (const d of f.director ?? []) directorCount.set(d, (directorCount.get(d) ?? 0) + 1);
   const peopleById = new Map(people.map((p) => [p.id, p]));
@@ -401,6 +404,10 @@ function main() {
       .sort((a, b) => a[0] - b[0])
       .map(([decade, count]) => ({ decade, count })),
     by_role: [...byRole.entries()].map(([code, count]) => ({ code, count })),
+    by_genre: [...byGenre.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([code, count]) => ({ code, count })),
     top_studios: topStudios,
     top_directors: topDirectors,
   });

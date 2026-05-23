@@ -113,6 +113,7 @@ export interface StatsData {
   by_country: { code: string; count: number }[];
   by_decade: { decade: number; count: number }[];
   by_role: { code: string; count: number }[];
+  by_genre: { code: string; count: number }[];
   top_studios: { id: string; name_ru: string; count: number }[];
   top_directors: {
     id: string;
