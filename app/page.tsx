@@ -196,6 +196,31 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* ТОП-СТУДИИ */}
+      {stats.top_studios.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">Кинофабрики</h2>
+            <Link href="/studios" className="titre hover:text-sepia">
+              Все студии →
+            </Link>
+          </header>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {stats.top_studios.slice(0, 6).map((s) => (
+              <li key={s.id}>
+                <Link
+                  href={`/studios/${s.id}`}
+                  className="frame block p-3 hover:border-sepia/40 transition-colors"
+                >
+                  <p className="text-light font-medium leading-tight">{s.name_ru}</p>
+                  <p className="titre mt-1">{s.count} фильмов</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* ВЫДАЮЩИЕСЯ ЛИЧНОСТИ */}
       <PersonalitiesBlock />
 
