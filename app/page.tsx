@@ -5,6 +5,7 @@ import { Avatar } from "@/lib/media-components";
 import {
   countFilms,
   filmsByTopic,
+  getDbStats,
   listFilms,
   listTopics,
   topDirectors,
@@ -21,6 +22,7 @@ export default function HomePage() {
   const topics = listTopics();
   const directors = topDirectors(12);
   const foreignReleases = filmsByTopic("foreign-in-soviet-distribution").slice(0, 8);
+  const stats = getDbStats();
 
   return (
     <article className="space-y-16">
@@ -43,9 +45,52 @@ export default function HomePage() {
           </div>
         </div>
         <p className="titre text-center mt-3">
-          {total} {pluralizeFilms(total)} · {topics.length} тем · растущий каталог
+          {total} {pluralizeFilms(total)} · {stats.totals.people} персон ·{" "}
+          {stats.totals.studios} студий · {topics.length} тем
         </p>
       </section>
+
+      {/* ПО ДЕСЯТИЛЕТИЯМ — кликабельные карточки */}
+      {stats.by_decade.length > 0 && (
+        <section className="space-y-3">
+          <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+            <h2 className="font-display text-xl text-light">По десятилетиям</h2>
+            <Link href="/stats" className="titre hover:text-sepia">
+              Полная статистика →
+            </Link>
+          </header>
+          <ul className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+            {[1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990].map((d) => {
+              const count = stats.by_decade.find((b) => b.decade === d)?.count ?? 0;
+              const empty = count === 0;
+              return (
+                <li key={d}>
+                  <Link
+                    href={{ pathname: "/films", query: { decade: String(d), year: "all" } }}
+                    className={
+                      "frame block p-3 text-center transition-colors " +
+                      (empty
+                        ? "border-light/5 bg-velvet/30 hover:border-light/15"
+                        : "hover:border-sepia/40")
+                    }
+                  >
+                    <p
+                      className={
+                        "font-display text-xl " + (empty ? "text-light/30" : "text-light")
+                      }
+                    >
+                      {d}-е
+                    </p>
+                    <p className="titre">
+                      {empty ? <span className="text-light/30">—</span> : count}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       {/* ЛЕНТА — недавно добавленные */}
       <section className="space-y-3">
