@@ -36,6 +36,8 @@ export interface FilmListItem {
   country: string[];
   poster_commons?: string;
   poster_tmdb_path?: string;
+  /** Год советского проката — только для зарубежных фильмов. */
+  soviet_release_year?: number;
 }
 
 export function listFilms(opts?: {
@@ -733,8 +735,21 @@ export function filmsByTopic(topicId: string): FilmListItem[] {
         title_original: r.title_original ?? r.title_ru ?? r.id,
         year: r.year,
         country: r.country ? r.country.split(",") : [],
+        poster_commons: f.poster_commons,
+        poster_tmdb_path: f.poster_tmdb_path,
+        soviet_release_year: f.soviet_release?.year,
       });
     }
+  }
+  // Для топика foreign-in-soviet-distribution сортируем по году
+  // советского проката (а не года производства) — это естественный
+  // порядок «что когда увидели в СССР».
+  if (topicId === "foreign-in-soviet-distribution") {
+    return out.sort((a, b) => {
+      const ay = a.soviet_release_year ?? a.year;
+      const by = b.soviet_release_year ?? b.year;
+      return by - ay || a.title_ru.localeCompare(b.title_ru, "ru");
+    });
   }
   return out.sort((a, b) => b.year - a.year || a.title_ru.localeCompare(b.title_ru, "ru"));
 }
