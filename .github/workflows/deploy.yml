@@ -42,6 +42,17 @@ jobs:
           NEXT_PUBLIC_SITE_URL: ${{ vars.SITE_URL || 'https://soviet-cinema.pages.dev' }}
         run: npm run build
 
+      # Cloudflare Pages free tier режет деплой на 20 000 файлах.
+      # Next.js генерирует .txt (RSC payload) на каждую html-страницу,
+      # удваивая счётчик. Удаляем .txt — Link-навигация откатится на
+      # full page reload, что приемлемо.
+      - name: Trim RSC .txt files (CFP 20k file limit)
+        run: |
+          before=$(find out -type f | wc -l)
+          find out -name "*.txt" -delete
+          after=$(find out -type f | wc -l)
+          echo "Файлов до: $before · после: $after"
+
       # wrangler pages deploy не создаёт проект сам — нужно сделать это
       # один раз. Делаем через прямой shell-вызов, чтобы корректно
       # игнорировать ошибку «already exists» при повторных запусках.
