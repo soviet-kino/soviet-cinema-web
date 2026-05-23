@@ -9,6 +9,7 @@ import {
   filmographyOf,
   filmsAdaptedFromAuthor,
   getPerson,
+  type FilmographyEntry,
 } from "@/lib/queries";
 
 interface PageProps {
@@ -76,30 +77,77 @@ export default async function PersonPage({ params }: PageProps) {
       </header>
 
       {films.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
-            Фильмография ({films.length})
-          </h2>
-          <ul className="space-y-1">
-            {films.map((f, i) => (
-              <li
-                key={`${f.film_id}-${f.role}-${i}`}
-                className="flex items-baseline justify-between gap-4"
-              >
-                <Link href={`/films/${f.film_id}`} className="hover:underline">
-                  <span className="text-light/60 mr-2">{f.year}</span>
-                  <span className="font-medium">{f.title_ru}</span>
-                </Link>
-                <span className="text-sm text-light/60 shrink-0">
-                  {ROLE_LABEL[f.role] ?? f.role}
-                  {f.character && (
-                    <span className="text-light/50"> — {f.character}</span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+        (() => {
+          // Группировка по ролям, в порядке: director → screenwriter →
+          // cinematographer → composer → actor.
+          const order: FilmographyEntry["role"][] = [
+            "director",
+            "screenwriter",
+            "cinematographer",
+            "composer",
+            "actor",
+          ];
+          const groups = new Map<FilmographyEntry["role"], FilmographyEntry[]>();
+          for (const f of films) {
+            let arr = groups.get(f.role);
+            if (!arr) {
+              arr = [];
+              groups.set(f.role, arr);
+            }
+            arr.push(f);
+          }
+          const years = films.map((f) => f.year).filter((y): y is number => !!y);
+          const span = years.length
+            ? `${Math.min(...years)}–${Math.max(...years)}`
+            : "";
+          return (
+            <>
+              <p className="titre">
+                фильмография · {films.length} участий
+                {span && <> · {span}</>}
+              </p>
+              {order
+                .filter((role) => groups.has(role))
+                .map((role) => {
+                  const entries = groups.get(role)!;
+                  return (
+                    <section key={role} className="space-y-2">
+                      <h2 className="text-lg font-semibold text-light/90 border-b border-light/10 pb-1">
+                        {ROLE_LABEL[role] ?? role}{" "}
+                        <span className="text-light/40 text-sm font-normal">
+                          {entries.length}
+                        </span>
+                      </h2>
+                      <ul className="space-y-1">
+                        {entries
+                          .slice()
+                          .sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
+                          .map((f, i) => (
+                            <li
+                              key={`${f.film_id}-${role}-${i}`}
+                              className="flex items-baseline justify-between gap-4"
+                            >
+                              <Link
+                                href={`/films/${f.film_id}`}
+                                className="hover:underline"
+                              >
+                                <span className="text-light/60 mr-2">{f.year}</span>
+                                <span className="font-medium">{f.title_ru}</span>
+                              </Link>
+                              {f.character && (
+                                <span className="text-sm text-light/50 shrink-0">
+                                  {f.character}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+            </>
+          );
+        })()
       ) : (
         <p className="text-light/60">В базе нет фильмов с этим участником.</p>
       )}
