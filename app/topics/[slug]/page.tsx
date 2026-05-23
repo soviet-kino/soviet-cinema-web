@@ -68,7 +68,14 @@ export default async function TopicPage({ params }: PageProps) {
                   )}
                 </Link>
                 <span className="text-sm text-light/60 shrink-0">
-                  {f.year}
+                  {f.soviet_release_year ? (
+                    <>
+                      <span className="text-sepia">сов. {f.soviet_release_year}</span>
+                      <span className="ml-2 text-light/40">· оригинал {f.year}</span>
+                    </>
+                  ) : (
+                    <>{f.year}</>
+                  )}
                   {f.country.length > 0 && (
                     <span className="ml-2">
                       {f.country.map((c, i) => (
