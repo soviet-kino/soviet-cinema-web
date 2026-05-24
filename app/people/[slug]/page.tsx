@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import {
   allPersonIds,
+  collaboratorsOf,
   filmographyOf,
   filmsAdaptedFromAuthor,
   getPerson,
@@ -41,6 +42,11 @@ export default async function PersonPage({ params }: PageProps) {
   if (!person) notFound();
   const films = filmographyOf(slug);
   const adaptations = filmsAdaptedFromAuthor(slug);
+  // Соратники — только если у человека хотя бы 3 фильма, иначе шум.
+  const collaborators =
+    films.length >= 3
+      ? collaboratorsOf(slug, 12).filter((c) => c.shared_films >= 2)
+      : [];
 
   return (
     <article className="space-y-8">
@@ -150,6 +156,38 @@ export default async function PersonPage({ params }: PageProps) {
         })()
       ) : (
         <p className="text-light/60">В базе нет фильмов с этим участником.</p>
+      )}
+
+      {collaborators.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold text-light/90 border-b border-light/10 pb-1">
+            Часто работал с
+          </h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {collaborators.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/people/${c.id}`}
+                  className="frame flex items-center gap-3 p-2 hover:border-sepia/40 transition-colors"
+                >
+                  <Avatar
+                    filename={c.image_commons}
+                    alt={`Портрет: ${c.name_ru}`}
+                    size={40}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-light text-sm font-medium leading-tight truncate">
+                      {c.name_ru}
+                    </p>
+                    <p className="titre">
+                      {c.shared_films} совместн{c.shared_films === 1 ? "ый фильм" : "ых фильма"}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {adaptations.length > 0 && (
