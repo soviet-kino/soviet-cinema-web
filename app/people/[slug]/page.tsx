@@ -115,7 +115,35 @@ export default async function PersonPage({ params }: PageProps) {
               {order
                 .filter((role) => groups.has(role))
                 .map((role) => {
-                  const entries = groups.get(role)!;
+                  const entries = groups
+                    .get(role)!
+                    .slice()
+                    .sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+                  const VISIBLE = 30;
+                  const visible = entries.slice(0, VISIBLE);
+                  const hidden = entries.slice(VISIBLE);
+                  const renderRow = (
+                    f: (typeof entries)[number],
+                    i: number,
+                  ) => (
+                    <li
+                      key={`${f.film_id}-${role}-${i}`}
+                      className="flex items-baseline justify-between gap-4"
+                    >
+                      <Link
+                        href={`/films/${f.film_id}`}
+                        className="hover:underline"
+                      >
+                        <span className="text-light/60 mr-2">{f.year}</span>
+                        <span className="font-medium">{f.title_ru}</span>
+                      </Link>
+                      {f.character && (
+                        <span className="text-sm text-light/50 shrink-0">
+                          {f.character}
+                        </span>
+                      )}
+                    </li>
+                  );
                   return (
                     <section key={role} className="space-y-2">
                       <h2 className="text-lg font-semibold text-light/90 border-b border-light/10 pb-1">
@@ -124,30 +152,18 @@ export default async function PersonPage({ params }: PageProps) {
                           {entries.length}
                         </span>
                       </h2>
-                      <ul className="space-y-1">
-                        {entries
-                          .slice()
-                          .sort((a, b) => (b.year ?? 0) - (a.year ?? 0))
-                          .map((f, i) => (
-                            <li
-                              key={`${f.film_id}-${role}-${i}`}
-                              className="flex items-baseline justify-between gap-4"
-                            >
-                              <Link
-                                href={`/films/${f.film_id}`}
-                                className="hover:underline"
-                              >
-                                <span className="text-light/60 mr-2">{f.year}</span>
-                                <span className="font-medium">{f.title_ru}</span>
-                              </Link>
-                              {f.character && (
-                                <span className="text-sm text-light/50 shrink-0">
-                                  {f.character}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                      </ul>
+                      <ul className="space-y-1">{visible.map(renderRow)}</ul>
+                      {hidden.length > 0 && (
+                        <details className="group">
+                          <summary className="cursor-pointer list-none titre hover:text-sepia inline-flex items-center gap-1">
+                            <span className="group-open:rotate-90 transition-transform">▸</span>
+                            ещё {hidden.length}
+                          </summary>
+                          <ul className="space-y-1 mt-2">
+                            {hidden.map(renderRow)}
+                          </ul>
+                        </details>
+                      )}
                     </section>
                   );
                 })}

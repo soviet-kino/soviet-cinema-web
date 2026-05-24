@@ -96,7 +96,7 @@ export default async function FilmPage({ params }: PageProps) {
   return (
     <article className="space-y-8">
       <Breadcrumbs items={[{ label: "фильмы", href: "/films" }, { label: film.title_ru }]} />
-      <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-6 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-[280px_1fr] gap-6 items-start">
         <aside className="sm:row-span-2">
           <Poster
             filename={film.poster_commons}
@@ -227,12 +227,18 @@ export default async function FilmPage({ params }: PageProps) {
       )}
 
       {film.cast && film.cast.length > 0 && (
-        <Section title="В ролях">
-          <ul className="space-y-2">
-            {film.cast.map((c, i) => {
+        <Section title={`В ролях · ${film.cast.length}`}>
+          {(() => {
+            const VISIBLE = 25;
+            const visible = film.cast.slice(0, VISIBLE);
+            const hidden = film.cast.slice(VISIBLE);
+            const renderRow = (
+              c: (typeof film.cast)[number],
+              i: number,
+            ) => {
               const p = peopleMap.get(c.person);
               return (
-                <li key={i} className="flex items-center gap-3">
+                <li key={`${c.person}-${i}`} className="flex items-center gap-3">
                   <Avatar
                     filename={p?.image_commons}
                     alt={p ? `Портрет: ${p.name_ru}` : ""}
@@ -244,8 +250,22 @@ export default async function FilmPage({ params }: PageProps) {
                   </span>
                 </li>
               );
-            })}
-          </ul>
+            };
+            return (
+              <>
+                <ul className="space-y-2">{visible.map(renderRow)}</ul>
+                {hidden.length > 0 && (
+                  <details className="group mt-2">
+                    <summary className="cursor-pointer list-none titre hover:text-sepia inline-flex items-center gap-1">
+                      <span className="group-open:rotate-90 transition-transform">▸</span>
+                      ещё {hidden.length} в ролях
+                    </summary>
+                    <ul className="space-y-2 mt-2">{hidden.map(renderRow)}</ul>
+                  </details>
+                )}
+              </>
+            );
+          })()}
         </Section>
       )}
 
