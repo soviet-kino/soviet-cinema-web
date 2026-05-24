@@ -381,6 +381,68 @@ export interface FilmographyEntry {
   character?: string;
 }
 
+export interface Collaborator {
+  id: string;
+  name_ru: string;
+  image_commons?: string;
+  shared_films: number;
+}
+
+/**
+ * «Часто работал с»: для personId находим всех людей, с которыми он
+ * пересекался в одном и том же фильме (как режиссёр/сценарист/оператор/
+ * композитор/актёр), считаем сколько раз и возвращаем топ-N.
+ *
+ * Самопересечение исключаем. Один проход по всем фильмам.
+ */
+export function collaboratorsOf(
+  personId: string,
+  limit = 12,
+): Collaborator[] {
+  const conn = db();
+  const rows = conn
+    .prepare("SELECT data FROM films")
+    .all() as { data: string }[];
+  const counts = new Map<string, number>();
+  const peopleOfFilm = (f: Film): string[] => {
+    const ids: string[] = [];
+    if (f.director) ids.push(...f.director);
+    if (f.screenwriter) ids.push(...f.screenwriter);
+    if (f.cinematographer) ids.push(...f.cinematographer);
+    if (f.composer) ids.push(...f.composer);
+    if (f.cast) for (const c of f.cast) ids.push(c.person);
+    return ids;
+  };
+  for (const r of rows) {
+    const f = JSON.parse(r.data) as Film;
+    const ids = peopleOfFilm(f);
+    if (!ids.includes(personId)) continue;
+    for (const id of ids) {
+      if (id === personId) continue;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+  }
+  const top = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
+  if (top.length === 0) return [];
+  const ids = top.map(([id]) => id);
+  const placeholders = ids.map(() => "?").join(",");
+  const peopleRows = conn
+    .prepare(`SELECT id, data FROM people WHERE id IN (${placeholders})`)
+    .all(...ids) as { id: string; data: string }[];
+  const map = new Map(peopleRows.map((p) => [p.id, JSON.parse(p.data) as Person]));
+  return top.map(([id, c]) => {
+    const p = map.get(id);
+    return {
+      id,
+      name_ru: p?.name_ru ?? id,
+      image_commons: p?.image_commons,
+      shared_films: c,
+    };
+  });
+}
+
 export function filmographyOf(personId: string): FilmographyEntry[] {
   const conn = db();
   const rows = conn
