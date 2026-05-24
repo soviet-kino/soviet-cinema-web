@@ -76,6 +76,22 @@ export default async function FilmPage({ params }: PageProps) {
         .filter((f) => f.id !== slug)
         .slice(0, 10)
     : [];
+  // В том же году вышли — до 8, исключая текущий, той же страны (если
+  // одна; иначе любой), случайная подборка.
+  const sameYearCountry =
+    film.country.length === 1 ? film.country[0] : undefined;
+  const sameYearAll = listFilms({
+    year: film.year,
+    country: sameYearCountry,
+    limit: 50,
+  }).filter((f) => f.id !== slug);
+  // Псевдослучайная выборка по slug чтобы порядок был стабилен между
+  // деплоями: shuffle через хеш строки.
+  const sameYear = sameYearAll
+    .map((f) => ({ f, h: simpleHash(slug + f.id) }))
+    .sort((a, b) => a.h - b.h)
+    .slice(0, 8)
+    .map((x) => x.f);
 
   return (
     <article className="space-y-8">
@@ -308,6 +324,36 @@ export default async function FilmPage({ params }: PageProps) {
         </Section>
       )}
 
+      {sameYear.length > 0 && (
+        <Section title={`В том же году вышли — ${film.year}`}>
+          <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+            {sameYear.map((f) => (
+              <li key={f.id}>
+                <Link href={`/films/${f.id}`} className="hover:underline">
+                  <span className="font-medium">{f.title_ru}</span>
+                  {f.title_original && f.title_original !== f.title_ru && (
+                    <span className="text-light/60 ml-2 text-sm">
+                      «{f.title_original}»
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2">
+            <Link
+              href={{
+                pathname: "/films",
+                query: { year: String(film.year), country: sameYearCountry },
+              }}
+              className="titre hover:text-sepia"
+            >
+              Все фильмы {film.year}{sameYearCountry ? ` · ${sameYearCountry}` : ""} →
+            </Link>
+          </p>
+        </Section>
+      )}
+
       {otherAdaptations.length > 0 && litAuthorSlug && (
         <Section
           title={`Другие экранизации — ${peopleMap.get(litAuthorSlug)?.name_ru ?? litAuthorSlug}`}
@@ -515,4 +561,16 @@ function ExternalIdsView({ film }: { film: Film }) {
       ))}
     </ul>
   );
+}
+
+
+// Простая детерминированная хэш-функция — для shuffle, не для криптографии.
+// Нужна, чтобы порядок блока «в том же году вышли» был стабилен между
+// сборками для одного фильма (иначе диффы html в out/ скакали бы).
+function simpleHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  }
+  return h;
 }
