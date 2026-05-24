@@ -215,7 +215,9 @@ function SearchContent() {
                     size={36}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-light font-medium truncate">{p.name_ru}</p>
+                    <p className="text-light font-medium truncate">
+                      {highlight(p.name_ru ?? p.id, trimmed)}
+                    </p>
                     {p.roles.length > 0 && (
                       <p className="titre truncate">
                         {p.roles.map((r, i) => (
@@ -244,9 +246,13 @@ function SearchContent() {
                 className="py-3 flex items-baseline justify-between gap-4"
               >
                 <Link href={`/films/${f.id}`} className="hover:underline">
-                  <span className="font-medium">{f.title_ru}</span>
+                  <span className="font-medium">
+                    {highlight(f.title_ru, trimmed)}
+                  </span>
                   {f.title_original && f.title_original !== f.title_ru && (
-                    <span className="text-light/60 ml-2">«{f.title_original}»</span>
+                    <span className="text-light/60 ml-2">
+                      «{highlight(f.title_original, trimmed)}»
+                    </span>
                   )}
                 </Link>
                 <span className="text-sm text-light/60 shrink-0">
@@ -285,6 +291,37 @@ export default function SearchPage() {
       <SearchContent />
     </Suspense>
   );
+}
+
+/**
+ * Подсветка совпадения. Делим текст по запросу (case-insensitive) и
+ * оборачиваем найденные куски в <mark>. Чтобы не сломать русский, идём
+ * через toLocaleLowerCase + indexOf, а не через regex.
+ */
+function highlight(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const q = query.toLocaleLowerCase("ru");
+  const lower = text.toLocaleLowerCase("ru");
+  const out: React.ReactNode[] = [];
+  let i = 0;
+  while (i < text.length) {
+    const idx = lower.indexOf(q, i);
+    if (idx === -1) {
+      out.push(text.slice(i));
+      break;
+    }
+    if (idx > i) out.push(text.slice(i, idx));
+    out.push(
+      <mark
+        key={idx}
+        className="bg-sepia/30 text-light rounded px-0.5"
+      >
+        {text.slice(idx, idx + q.length)}
+      </mark>,
+    );
+    i = idx + q.length;
+  }
+  return <>{out}</>;
 }
 
 function FacetChip({
