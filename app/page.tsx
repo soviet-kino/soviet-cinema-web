@@ -330,10 +330,13 @@ export default function HomePage() {
       )}
 
       {/* НАВИГАЦИЯ */}
-      <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <section className="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
         <NavTile href="/films" titre="каталог" title="Фильмы" hint="по году, стране, режиссёру" />
+        <NavTile href="/coproductions" titre="кооперация" title="Со-продукции" hint="совместные постановки" />
         <NavTile href="/personalities" titre="галерея" title="Личности" hint="выдающиеся актёры и режиссёры" />
         <NavTile href="/topics" titre="темы" title="Исследовать" hint="хрононавтика и другие срезы" />
+        <NavTile href="/random" titre="наугад" title="Случайный фильм" hint="один из 14 тысяч" />
+        <NavTile href="/stats" titre="метрики" title="Здоровье базы" hint="полнота, охват, рост" />
         <NavTile href="/essays" titre="лонгриды" title="Разборы" hint="второй смысловой ряд, скоро" />
       </section>
     </article>
