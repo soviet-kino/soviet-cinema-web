@@ -45,36 +45,67 @@ export default async function StudioPage({ params }: PageProps) {
         </p>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="font-display text-xl text-light border-b border-light/10 pb-1">
-          Фильмы студии ({films.length})
-        </h2>
-        {films.length === 0 ? (
-          <p className="text-light/60">
-            В базе нет фильмов этой студии. Они появятся по мере обогащения
-            каталога — sbc-enrich-films подтянет привязки по QID.
-          </p>
-        ) : (
-          <ul className="divide-y divide-light/10">
-            {films.map((f) => (
-              <li
-                key={f.id}
-                className="py-3 flex items-baseline justify-between gap-4"
-              >
-                <Link href={`/films/${f.id}`} className="hover:underline">
-                  <span className="font-medium">{f.title_ru}</span>
-                  {f.title_original && f.title_original !== f.title_ru && (
-                    <span className="text-light/60 ml-2">
-                      «{f.title_original}»
-                    </span>
-                  )}
-                </Link>
-                <span className="text-sm text-light/60 shrink-0">{f.year}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {films.length === 0 ? (
+        <p className="text-light/60">
+          В базе нет фильмов этой студии. Они появятся по мере обогащения
+          каталога — sbc-enrich-films подтянет привязки по QID.
+        </p>
+      ) : (
+        (() => {
+          // Группировка по десятилетиям; внутри декады — по убыванию года.
+          const groups = new Map<number, typeof films>();
+          for (const f of films) {
+            if (f.year == null) continue;
+            const d = Math.floor(f.year / 10) * 10;
+            let arr = groups.get(d);
+            if (!arr) {
+              arr = [];
+              groups.set(d, arr);
+            }
+            arr.push(f);
+          }
+          const decades = [...groups.keys()].sort((a, b) => b - a);
+          const years = films
+            .map((f) => f.year)
+            .filter((y): y is number => y != null);
+          const span = years.length
+            ? `${Math.min(...years)}–${Math.max(...years)}`
+            : "";
+          return (
+            <>
+              <p className="titre">
+                {films.length} фильмов · период {span} · {decades.length} десятилетий
+              </p>
+              {decades.map((d) => {
+                const items = groups.get(d)!.sort((a, b) => b.year - a.year);
+                return (
+                  <section key={d} className="space-y-2">
+                    <h2 className="text-lg font-semibold text-light/90 border-b border-light/10 pb-1">
+                      {d}-е{" "}
+                      <span className="text-light/40 text-sm font-normal">
+                        {items.length}
+                      </span>
+                    </h2>
+                    <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+                      {items.map((f) => (
+                        <li key={f.id}>
+                          <Link
+                            href={`/films/${f.id}`}
+                            className="hover:underline"
+                          >
+                            <span className="text-light/60 mr-2">{f.year}</span>
+                            <span className="font-medium">{f.title_ru}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+            </>
+          );
+        })()
+      )}
 
       {studio.external_ids?.wikidata && (
         <section className="text-sm text-light/60">
