@@ -45,53 +45,106 @@ export default async function TopicPage({ params }: PageProps) {
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
-          Фильмы раздела ({films.length})
-        </h2>
-        {films.length === 0 ? (
-          <p className="text-light/60">
-            В этом разделе пока нет фильмов. Они появятся по мере роста базы и
-            кураторской разметки.
-          </p>
-        ) : (
-          <ul className="divide-y divide-light/10">
-            {films.map((f) => (
-              <li
-                key={f.id}
-                className="py-3 flex items-baseline justify-between gap-4"
-              >
-                <Link href={`/films/${f.id}`} className="hover:underline">
-                  <span className="font-medium">{f.title_ru}</span>
-                  {f.title_original && f.title_original !== f.title_ru && (
-                    <span className="text-light/60 ml-2">«{f.title_original}»</span>
-                  )}
-                </Link>
-                <span className="text-sm text-light/60 shrink-0">
-                  {f.soviet_release_year ? (
-                    <>
-                      <span className="text-sepia">сов. {f.soviet_release_year}</span>
-                      <span className="ml-2 text-light/40">· оригинал {f.year}</span>
-                    </>
-                  ) : (
-                    <>{f.year}</>
-                  )}
-                  {f.country.length > 0 && (
-                    <span className="ml-2">
-                      {f.country.map((c, i) => (
-                        <span key={c}>
-                          {i > 0 && ", "}
-                          <Abbr kind="country" code={c} />
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {films.length === 0 ? (
+        <p className="text-light/60">
+          В этом разделе пока нет фильмов. Они появятся по мере роста базы и
+          кураторской разметки.
+        </p>
+      ) : (
+        (() => {
+          // При большом числе фильмов (>80) группируем по десятилетиям —
+          // иначе плоский список превращается в простыню (stagnation-cinema
+          // отдавал 3194 фильма одним блоком, 4 МБ HTML).
+          const useDecades = films.length > 80;
+          const groups = new Map<number, typeof films>();
+          if (useDecades) {
+            for (const f of films) {
+              if (f.year == null) continue;
+              const d = Math.floor(f.year / 10) * 10;
+              let arr = groups.get(d);
+              if (!arr) {
+                arr = [];
+                groups.set(d, arr);
+              }
+              arr.push(f);
+            }
+          }
+          const decades = useDecades
+            ? [...groups.keys()].sort((a, b) => b - a)
+            : [];
+          const renderFilm = (f: (typeof films)[number]) => (
+            <li
+              key={f.id}
+              className="py-2 flex items-baseline justify-between gap-4"
+            >
+              <Link href={`/films/${f.id}`} className="hover:underline">
+                <span className="font-medium">{f.title_ru}</span>
+                {f.title_original && f.title_original !== f.title_ru && (
+                  <span className="text-light/60 ml-2">«{f.title_original}»</span>
+                )}
+              </Link>
+              <span className="text-sm text-light/60 shrink-0">
+                {f.soviet_release_year ? (
+                  <>
+                    <span className="text-sepia">сов. {f.soviet_release_year}</span>
+                    <span className="ml-2 text-light/40">· оригинал {f.year}</span>
+                  </>
+                ) : (
+                  <>{f.year}</>
+                )}
+                {f.country.length > 0 && (
+                  <span className="ml-2">
+                    {f.country.map((c, i) => (
+                      <span key={c}>
+                        {i > 0 && ", "}
+                        <Abbr kind="country" code={c} />
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+          return (
+            <section className="space-y-3">
+              <h2 className="text-xl font-semibold border-b border-light/10 pb-1">
+                Фильмы раздела ({films.length})
+              </h2>
+              {!useDecades ? (
+                <ul className="divide-y divide-light/10">
+                  {films.map(renderFilm)}
+                </ul>
+              ) : (
+                <div className="space-y-3">
+                  {decades.map((d) => {
+                    const items = groups.get(d)!.sort((a, b) => b.year - a.year);
+                    return (
+                      <details
+                        key={d}
+                        open={d === decades[0]}
+                        className="border border-light/10 rounded overflow-hidden group"
+                      >
+                        <summary className="cursor-pointer list-none flex items-baseline justify-between gap-4 px-3 py-2 hover:bg-light/5">
+                          <span className="font-display text-lg text-light">
+                            <span className="text-sepia/60 inline-block w-4 text-center mr-1 group-open:rotate-90 transition-transform">
+                              ▸
+                            </span>
+                            {d}-е
+                          </span>
+                          <span className="titre">{items.length}</span>
+                        </summary>
+                        <ul className="divide-y divide-light/10 px-3 pb-2">
+                          {items.map(renderFilm)}
+                        </ul>
+                      </details>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })()
+      )}
 
       {topic.related_motifs && topic.related_motifs.length > 0 && (
         <section>
