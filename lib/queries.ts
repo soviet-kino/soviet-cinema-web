@@ -250,11 +250,19 @@ export function staticFilmIds(): string[] {
   const out: string[] = [];
   for (const r of rows) {
     const f = JSON.parse(r.data) as Film;
-    // Жёсткий фильтр под 20k CFP-лимит: только фильмы с director.
-    // Это покрывает фильмы из любой коллекции/темы (в темы попадают
-    // только обогащённые), исключает голые заглушки.
-    const meaningful = (f.director?.length ?? 0) > 0;
-    if (meaningful) out.push(r.id);
+    // Под 20k CFP-лимит: фильм должен быть «не пустой».
+    // Минимум director + ещё хотя бы одно из:
+    //   - cast (актёры)
+    //   - poster_commons / poster_tmdb_path (постер)
+    //   - topics (явная тема)
+    // Это отсеивает заглушки где enrich подтянул только режиссёра.
+    const hasDir = (f.director?.length ?? 0) > 0;
+    const hasExtras =
+      (f.cast?.length ?? 0) > 0 ||
+      !!f.poster_commons ||
+      !!f.poster_tmdb_path ||
+      (f.topics?.length ?? 0) > 0;
+    if (hasDir && hasExtras) out.push(r.id);
   }
   return out;
 }
