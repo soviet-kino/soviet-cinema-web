@@ -27,6 +27,18 @@ export default function HomePage() {
   const foreignReleases = filmsByTopic("foreign-in-soviet-distribution").slice(0, 8);
   const stats = getDbStats();
 
+  // 5 советских эпох — слаги топиков и человеческие подписи.
+  const eras = [
+    { id: "pre-war-cinema", label: "Довоенное", years: "1917–1941" },
+    { id: "stalin-cinema", label: "Сталинское", years: "1924–1953" },
+    { id: "thaw-cinema", label: "Оттепель", years: "1953–1964" },
+    { id: "stagnation-cinema", label: "Застой", years: "1964–1985" },
+    { id: "perestroika-cinema", label: "Перестройка", years: "1985–1991" },
+  ].map((e) => ({
+    ...e,
+    count: topics.find((t) => t.id === e.id)?.film_count ?? 0,
+  }));
+
   return (
     <article className="space-y-16">
       {/* HERO — большой «экран» */}
@@ -51,6 +63,29 @@ export default function HomePage() {
           {total} {pluralizeFilms(total)} · {stats.totals.people} персон ·{" "}
           {stats.totals.studios} студий · {topics.length} тем
         </p>
+      </section>
+
+      {/* ЭПОХИ СОВЕТСКОГО КИНО */}
+      <section className="space-y-3">
+        <header className="flex items-baseline justify-between gap-4 border-b border-light/10 pb-2">
+          <h2 className="font-display text-xl text-light">Эпохи советского кино</h2>
+        </header>
+        <ul className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {eras.map((e) => (
+            <li key={e.id}>
+              <Link
+                href={`/topics/${e.id}`}
+                className="frame block p-3 text-center hover:border-sepia/40 transition-colors h-full"
+              >
+                <p className="font-display text-lg text-light leading-tight">
+                  {e.label}
+                </p>
+                <p className="titre mt-1">{e.years}</p>
+                <p className="text-sepia text-sm mt-1.5">{e.count} фильмов</p>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* ПО ДЕСЯТИЛЕТИЯМ — кликабельные карточки */}
