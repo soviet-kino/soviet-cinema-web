@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 
 import { Abbr } from "@/lib/abbr";
 import { Breadcrumbs } from "@/lib/breadcrumbs";
+import { Avatar } from "@/lib/media-components";
 import {
   allStudioIds,
   getStudio,
   listFilms,
+  topDirectorsOfStudio,
 } from "@/lib/queries";
 
 interface PageProps {
@@ -29,6 +31,7 @@ export default async function StudioPage({ params }: PageProps) {
   const studio = getStudio(slug);
   if (!studio) notFound();
   const films = listFilms({ studio: slug });
+  const topDirectors = topDirectorsOfStudio(slug, 8);
 
   return (
     <article className="space-y-8">
@@ -44,6 +47,36 @@ export default async function StudioPage({ params }: PageProps) {
           {studio.founded && <> · с {studio.founded}</>}
         </p>
       </header>
+
+      {topDirectors.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold text-light/90 border-b border-light/10 pb-1">
+            Главные режиссёры студии
+          </h2>
+          <ul className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {topDirectors.map((d) => (
+              <li key={d.id}>
+                <Link
+                  href={`/people/${d.id}`}
+                  className="frame flex items-center gap-3 p-2 hover:border-sepia/40 transition-colors"
+                >
+                  <Avatar
+                    filename={d.image_commons}
+                    alt={`Портрет: ${d.name_ru}`}
+                    size={40}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-light text-sm font-medium leading-tight truncate">
+                      {d.name_ru}
+                    </p>
+                    <p className="titre">{d.film_count} фильмов</p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {films.length === 0 ? (
         <p className="text-light/60">
