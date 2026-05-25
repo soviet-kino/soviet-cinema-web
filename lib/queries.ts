@@ -250,12 +250,10 @@ export function staticFilmIds(): string[] {
   const out: string[] = [];
   for (const r of rows) {
     const f = JSON.parse(r.data) as Film;
-    const meaningful =
-      (f.director?.length ?? 0) > 0 ||
-      (f.cast?.length ?? 0) > 0 ||
-      !!f.poster_commons ||
-      !!f.poster_tmdb_path ||
-      (f.topics?.length ?? 0) > 0;
+    // Жёсткий фильтр под 20k CFP-лимит: только фильмы с director.
+    // Это покрывает фильмы из любой коллекции/темы (в темы попадают
+    // только обогащённые), исключает голые заглушки.
+    const meaningful = (f.director?.length ?? 0) > 0;
     if (meaningful) out.push(r.id);
   }
   return out;
@@ -485,11 +483,18 @@ export function staticPersonIds(): string[] {
   for (const r of peopleRows) {
     const p = JSON.parse(r.data) as Person;
     const c = counts.get(r.id);
+    // Под 20k CFP-лимит пре-рендерим:
+    //   - всех с фото (image_commons) — это редакторские отметки
+    //     или обогащение Wikidata подтянуло
+    //   - всех в crew-ролях (director/screenwriter/cinematographer/
+    //     composer) — обычно их меньше тысяч
+    //   - актёров с >= 8 ролями (Никулин, Леонов, Папанов и т.п.)
+    // Эпизодические актёры (1-7 ролей без фото) — на 404. Они
+    // остаются в списках, но клик → 404.
     const include =
       !!p.image_commons ||
-      !!p.birth ||
       (c?.crew ?? 0) > 0 ||
-      (c?.cast ?? 0) >= 5;
+      (c?.cast ?? 0) >= 8;
     if (include) keep.push(r.id);
   }
   return keep;
