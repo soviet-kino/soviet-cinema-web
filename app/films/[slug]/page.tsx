@@ -5,7 +5,7 @@ import { Abbr } from "@/lib/abbr";
 import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar, Poster, WatchBlock } from "@/lib/media-components";
 import {
-  allFilmIds,
+  staticFilmIds,
   filmsAdaptedFromAuthor,
   getFilm,
   listFilms,
@@ -21,7 +21,8 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return allFilmIds().map((slug) => ({ slug }));
+  // Не пре-рендерим пустые заглушки — экономим место под CFP 20k-лимит.
+  return staticFilmIds().map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps) {

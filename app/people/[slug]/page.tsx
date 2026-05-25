@@ -5,11 +5,11 @@ import { Abbr } from "@/lib/abbr";
 import { Breadcrumbs } from "@/lib/breadcrumbs";
 import { Avatar } from "@/lib/media-components";
 import {
-  allPersonIds,
   collaboratorsOf,
   filmographyOf,
   filmsAdaptedFromAuthor,
   getPerson,
+  staticPersonIds,
   type FilmographyEntry,
 } from "@/lib/queries";
 
@@ -18,7 +18,10 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return allPersonIds().map((slug) => ({ slug }));
+  // Пре-рендерим только осмысленные страницы людей: с фото/датой рождения,
+  // с ролью в crew, или хотя бы в cast >= 2 фильмов. Эпизодические
+  // заглушки (>15k штук) — 404 в браузере. См. staticPersonIds в lib/queries.
+  return staticPersonIds().map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: PageProps) {
