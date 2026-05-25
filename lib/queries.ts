@@ -229,6 +229,38 @@ export function getFilm(id: string): Film | null {
   return JSON.parse(row.data) as Film;
 }
 
+/**
+ * Slug-и фильмов для пре-рендера статических страниц.
+ *
+ * Пропускаем «пустышки», где после enrich так и не появилось ни
+ * director/cast, ни постера. Их детальная страница — это просто
+ * title+year, ценности мало. Они остаются в каталоге /films и
+ * фильмографиях, но клик ведёт на 404. После того как редактор
+ * добавит данные — попадут в пре-рендер.
+ *
+ * Это нужно чтобы суммарное число файлов в out/ влезало в 20k
+ * Cloudflare Pages free tier.
+ */
+export function staticFilmIds(): string[] {
+  const conn = db();
+  const rows = conn.prepare("SELECT id, data FROM films").all() as {
+    id: string;
+    data: string;
+  }[];
+  const out: string[] = [];
+  for (const r of rows) {
+    const f = JSON.parse(r.data) as Film;
+    const meaningful =
+      (f.director?.length ?? 0) > 0 ||
+      (f.cast?.length ?? 0) > 0 ||
+      !!f.poster_commons ||
+      !!f.poster_tmdb_path ||
+      (f.topics?.length ?? 0) > 0;
+    if (meaningful) out.push(r.id);
+  }
+  return out;
+}
+
 export function allFilmIds(): string[] {
   const conn = db();
   const rows = conn.prepare("SELECT id FROM films").all() as { id: string }[];
@@ -399,6 +431,68 @@ export function allPersonIds(): string[] {
   const conn = db();
   const rows = conn.prepare("SELECT id FROM people").all() as { id: string }[];
   return rows.map((r) => r.id);
+}
+
+/**
+ * Slug-и людей, которым стоит пре-рендерить отдельную страницу.
+ *
+ * После enrich-films база надулась до 25k людей — почти все эпизодические
+ * актёры из cast одного фильма. Их статические страницы:
+ *   а) пробивают 20k-лимит Cloudflare Pages,
+ *   б) почти всегда — пустая «биография не заполнена».
+ *
+ * Критерии пре-рендера (любой из):
+ *   - есть image_commons (значит уже обогащён, осмысленная карточка)
+ *   - есть birth (минимальная биография)
+ *   - встречается как режиссёр/сценарист/композитор/оператор в любом фильме
+ *   - встречается в cast >= 5 фильмов (постоянный актёр, а не эпизод)
+ *
+ * Эпизодические заглушки (одна роль, без даты рождения и фото) получают
+ * 404, но в списках /people и фильмографиях фильмов остаются и кликабельны
+ * (страницы просто нет — клиент видит 404). Это компромисс.
+ */
+export function staticPersonIds(): string[] {
+  const conn = db();
+  const peopleRows = conn
+    .prepare("SELECT id, data FROM people")
+    .all() as { id: string; data: string }[];
+  // Считаем число вхождений каждого person в фильмах: в crew (1 балл за фильм)
+  // и в cast (1 балл за фильм). Простой счётчик.
+  const counts = new Map<string, { crew: number; cast: number }>();
+  const filmRows = conn.prepare("SELECT data FROM films").all() as { data: string }[];
+  for (const r of filmRows) {
+    const f = JSON.parse(r.data) as Film;
+    const crewSlugs = new Set<string>([
+      ...(f.director ?? []),
+      ...(f.screenwriter ?? []),
+      ...(f.cinematographer ?? []),
+      ...(f.composer ?? []),
+    ]);
+    for (const id of crewSlugs) {
+      const c = counts.get(id) ?? { crew: 0, cast: 0 };
+      c.crew += 1;
+      counts.set(id, c);
+    }
+    if (f.cast) {
+      for (const cm of f.cast) {
+        const c = counts.get(cm.person) ?? { crew: 0, cast: 0 };
+        c.cast += 1;
+        counts.set(cm.person, c);
+      }
+    }
+  }
+  const keep: string[] = [];
+  for (const r of peopleRows) {
+    const p = JSON.parse(r.data) as Person;
+    const c = counts.get(r.id);
+    const include =
+      !!p.image_commons ||
+      !!p.birth ||
+      (c?.crew ?? 0) > 0 ||
+      (c?.cast ?? 0) >= 5;
+    if (include) keep.push(r.id);
+  }
+  return keep;
 }
 
 /**
