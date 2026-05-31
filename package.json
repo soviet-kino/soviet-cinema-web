@@ -5,7 +5,7 @@
   "description": "Web app for the Soviet Bloc Cinema project",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/build-db.mjs && next build",
+    "build": "node scripts/build-db.mjs && next build && node scripts/strip-rsc.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
