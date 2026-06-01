@@ -250,17 +250,19 @@ export function staticFilmIds(): string[] {
   const out: string[] = [];
   for (const r of rows) {
     const f = JSON.parse(r.data) as Film;
-    // Под 20k CFP-лимит: фильм должен быть «не пустой».
-    // Минимум director + ещё хотя бы одно из:
-    //   - cast (актёры)
-    //   - poster_commons / poster_tmdb_path (постер)
-    //   - topics (явная тема)
-    // Это отсеивает заглушки где enrich подтянул только режиссёра.
+    // Под 20k CFP-лимит: пре-рендерим детальную страницу только если
+    // фильм «содержательный» — director + (актёры ИЛИ явная тема).
+    //
+    // ВАЖНО: постер НЕ квалифицирует. После TMDB-обогащения (2026-06-01,
+    // +9.6k poster_tmdb_path) poster как условие раздувал пререндер до
+    // ~21k файлов и пробивал лимит. Постеры всё равно показываются в
+    // карточках списков/поиска через films-index.json (client-side) для
+    // всех ~9.7k фильмов — для превью этого достаточно. Детальная
+    // страница без cast/topics малосодержательна (постер + год), её
+    // не пре-рендерим (клик → 404, как у прочих заглушек).
     const hasDir = (f.director?.length ?? 0) > 0;
     const hasExtras =
       (f.cast?.length ?? 0) > 0 ||
-      !!f.poster_commons ||
-      !!f.poster_tmdb_path ||
       (f.topics?.length ?? 0) > 0;
     if (hasDir && hasExtras) out.push(r.id);
   }
